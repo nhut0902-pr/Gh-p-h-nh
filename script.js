@@ -5,21 +5,29 @@ document.addEventListener('DOMContentLoaded', () => {
     const MAX_LEVEL = 100;
 
     // --- LƯU TRỮ TRẠNG THÁI GAME ---
-    let boardState = []; // 2D array: 0 = empty, 1-4 = color, 5 = crate
+    let boardState = [];
     let currentLevel = 1;
     let cratesCollected = 0;
     let cratesRequired = 5;
+    let coins = 0;
     let availablePieces = [];
     let isSoundOn = true;
+
+    // --- TRẠNG THÁI KÉO THẢ ---
     let isDragging = false;
-    let draggedPiece = null;
+    let draggedPieceData = null;
+    let draggedElement = null;
+    let startX, startY; // Vị trí bắt đầu của chuột/chạm
+    let offsetX, offsetY; // Độ lệch từ góc trên trái của khối
 
     // --- CÁC PHẦN TỬ DOM ---
+    const gameContainer = document.getElementById('game-container');
     const gameBoard = document.getElementById('game-board');
     const pieceContainer = document.getElementById('piece-container');
     const levelNumberEl = document.getElementById('level-number');
     const cratesCollectedEl = document.getElementById('crates-collected');
     const cratesRequiredEl = document.getElementById('crates-required');
+    const coinsAmountEl = document.getElementById('coins-amount');
 
     // Modals
     const settingsModal = document.getElementById('settings-modal');
@@ -37,34 +45,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- ĐỊNH NGHĨA HÌNH DẠNG KHỐI & MÀU SẮC ---
     const PIECE_SHAPES = {
-        // I
         i2: [[0, 0], [1, 0]], i3: [[0, 0], [1, 0], [2, 0]], i4: [[0, 0], [1, 0], [2, 0], [3, 0]],
-        // L
         l3: [[0, 0], [1, 0], [1, 1]], l4: [[0, 0], [1, 0], [2, 0], [2, 1]],
-        // J
         j3: [[0, 1], [1, 1], [1, 0]], j4: [[0, 1], [1, 1], [2, 1], [2, 0]],
-        // T
         t3: [[0, 0], [1, 0], [2, 0], [1, 1]],
-        // O
         o4: [[0, 0], [0, 1], [1, 0], [1, 1]],
-        // S, Z
         s: [[1, 0], [2, 0], [0, 1], [1, 1]], z: [[0, 0], [1, 0], [1, 1], [2, 1]],
-        // Dots
         dot1: [[0, 0]], dot2: [[0,0], [0,1]],
     };
     const COLORS = ['blue', 'orange', 'pink', 'yellow'];
     const COLOR_MAP = { blue: 1, orange: 2, pink: 3, yellow: 4, crate: 5 };
     
     // --- ÂM THANH (sử dụng ZzFX) ---
-    // zzfx is loaded from CDN
     const playSound = (sound) => {
-        if (!isSoundOn) return;
+        if (!isSoundOn || typeof zzfx !== 'function') return;
         switch (sound) {
             case 'place': zzfx(...[, , 90, .01, .03, .06, 1, 1.5, , , , , , , 1, , , .05, .01]); break;
             case 'clear': zzfx(...[1.05, , 224, .04, .13, .23, 4, .8, , , 436, .07, , .1, , .2, , .54, .05]); break;
             case 'win': zzfx(...[1.5, , 440, .1, .2, .3, 1, 1.5, 4, 2, , , , .1, , .1, , .8, .1]); break;
             case 'lose': zzfx(...[, .1, 120, .2, .3, .4, 4, 2, , , , , , .2, , .2, , .8, .1]); break;
-            case 'click': zzfx(...[, , 500, .01, .01, .1, 1, 0, , , , , , , , , , .02]); break;
+            case 'click': zzfx(...[, , 500, .01, .01, .1, 1, 0, , , , , , , , , .02]); break;
         }
     };
 
@@ -78,7 +78,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function setupLevel(level) {
         currentLevel = level;
-        // Công thức tính số rương cần thu thập, tăng dần
         cratesRequired = 4 + Math.floor(level / 2); 
         cratesCollected = 0;
         boardState = Array(GRID_SIZE).fill(0).map(() => Array(GRID_SIZE).fill(0));
@@ -86,7 +85,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function createBoard() {
         gameBoard.innerHTML = '';
-        gameBoard.style.gridTemplateColumns = `repeat(${GRID_SIZE}, 1fr)`;
         for (let i = 0; i < GRID_SIZE * GRID_SIZE; i++) {
             const cell = document.createElement('div');
             cell.classList.add('grid-cell');
@@ -112,27 +110,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const randomShapeKey = shapeKeys[Math.floor(Math.random() * shapeKeys.length)];
         const shape = PIECE_SHAPES[randomShapeKey];
         const color = COLORS[Math.floor(Math.random() * COLORS.length)];
-        
-        // 5% cơ hội có 1 rương trong khối
-        let hasCrate = Math.random() < 0.05;
+        let hasCrate = Math.random() < 0.1;
         let crateIndex = -1;
-        if (hasCrate && shape.length > 1) {
+        if (hasCrate && shape.length > 0) {
             crateIndex = Math.floor(Math.random() * shape.length);
         }
-
-        return {
-            shape,
-            color,
-            id: Date.now() + Math.random(),
-            crateIndex
-        };
+        return { shape, color, id: Date.now() + Math.random(), crateIndex };
     }
     
     function renderPiece(pieceData, index) {
         const pieceElement = document.createElement('div');
         pieceElement.classList.add('piece');
         pieceElement.dataset.pieceIndex = index;
-        pieceElement.draggable = true;
         
         const bounds = getPieceBounds(pieceData.shape);
         pieceElement.style.gridTemplateColumns = `repeat(${bounds.width}, 1fr)`;
@@ -145,15 +134,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const block = document.createElement('div');
             block.classList.add('block');
-            if(pieceData.crateIndex === i) {
-                block.classList.add('crate');
-            } else {
-                block.classList.add(`block-${pieceData.color}`);
-            }
+            if(pieceData.crateIndex === i) block.classList.add('crate');
+            else block.classList.add(`block-${pieceData.color}`);
             cell.appendChild(block);
             pieceElement.appendChild(cell);
         });
-
         return pieceElement;
     }
 
@@ -168,79 +153,111 @@ document.addEventListener('DOMContentLoaded', () => {
         return { width: maxX - minX + 1, height: maxY - minY + 1 };
     }
 
-    // --- LOGIC KÉO THẢ ---
-    
+    // --- LOGIC KÉO THẢ BẰNG MOUSE/TOUCH (Hệ thống mới) ---
+
     function handleDragStart(e) {
+        const targetPiece = e.target.closest('.piece');
+        if (!targetPiece) return;
+        
+        e.preventDefault(); // Ngăn hành vi mặc định (như kéo ảnh)
+
         isDragging = true;
-        const pieceIndex = e.target.dataset.pieceIndex;
-        draggedPiece = availablePieces[pieceIndex];
+        draggedElement = targetPiece;
+        const pieceIndex = parseInt(draggedElement.dataset.pieceIndex);
+        draggedPieceData = availablePieces[pieceIndex];
         
-        // Dùng setTimeout để tránh lỗi DOM khi thay đổi style ngay lập tức
-        setTimeout(() => {
-            e.target.classList.add('dragging');
-        }, 0);
+        const rect = draggedElement.getBoundingClientRect();
+        const clientX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
+        const clientY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
         
-        // Chuyển dữ liệu (không cần thiết lắm nhưng là good practice)
-        e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/plain', pieceIndex);
+        offsetX = clientX - rect.left;
+        offsetY = clientY - rect.top;
+        
+        // Di chuyển khối ra khỏi luồng và đặt dưới con trỏ
+        document.body.appendChild(draggedElement);
+        draggedElement.classList.add('dragging');
+        draggedElement.style.transform = `translate(${clientX - offsetX}px, ${clientY - offsetY}px) scale(1.2)`;
+
+        document.addEventListener('mousemove', handleDragMove);
+        document.addEventListener('mouseup', handleDragEnd);
+        document.addEventListener('touchmove', handleDragMove, { passive: false });
+        document.addEventListener('touchend', handleDragEnd);
     }
-    
+
+    function handleDragMove(e) {
+        if (!isDragging) return;
+        e.preventDefault();
+
+        const clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
+        const clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
+
+        // Cập nhật vị trí khối
+        draggedElement.style.transform = `translate(${clientX - offsetX}px, ${clientY - offsetY}px) scale(1.2)`;
+        
+        // Hiển thị bóng mờ
+        const targetCell = getCellFromPoint(clientX, clientY);
+        clearPreview();
+        if (targetCell) {
+            const row = parseInt(targetCell.dataset.row);
+            const col = parseInt(targetCell.dataset.col);
+            showPreview(draggedPieceData, row, col);
+        }
+    }
+
     function handleDragEnd(e) {
+        if (!isDragging) return;
+
         isDragging = false;
-        e.target.classList.remove('dragging');
+        document.removeEventListener('mousemove', handleDragMove);
+        document.removeEventListener('mouseup', handleDragEnd);
+        document.removeEventListener('touchmove', handleDragMove);
+        document.removeEventListener('touchend', handleDragEnd);
+
+        const clientX = e.type === 'touchend' ? e.changedTouches[0].clientX : e.clientX;
+        const clientY = e.type === 'touchend' ? e.changedTouches[0].clientY : e.clientY;
+        
+        const targetCell = getCellFromPoint(clientX, clientY);
         clearPreview();
-    }
-    
-    function handleDragOver(e) {
-        e.preventDefault();
-        const cell = e.target.closest('.grid-cell');
-        if (!cell || !draggedPiece) return;
+
+        let placed = false;
+        if (targetCell) {
+            const row = parseInt(targetCell.dataset.row);
+            const col = parseInt(targetCell.dataset.col);
+            if (canPlacePiece(draggedPieceData, row, col)) {
+                placePiece(draggedPieceData, row, col);
+                const pieceIndex = availablePieces.indexOf(draggedPieceData);
+                availablePieces[pieceIndex] = null;
+                placed = true;
+            }
+        }
         
-        const row = parseInt(cell.dataset.row);
-        const col = parseInt(cell.dataset.col);
-        
-        clearPreview();
-        showPreview(draggedPiece, row, col);
-    }
-    
-    function handleDrop(e) {
-        e.preventDefault();
-        const cell = e.target.closest('.grid-cell');
-        if (!cell || !draggedPiece) return;
-        
-        const row = parseInt(cell.dataset.row);
-        const col = parseInt(cell.dataset.col);
-        
-        if (canPlacePiece(draggedPiece, row, col)) {
-            placePiece(draggedPiece, row, col);
-            
-            const pieceIndex = availablePieces.indexOf(draggedPiece);
-            const pieceElement = document.querySelector(`.piece[data-piece-index='${pieceIndex}']`);
-            if (pieceElement) pieceElement.remove();
-            
-            availablePieces[pieceIndex] = null;
-            draggedPiece = null;
-            
+        draggedElement.remove(); // Xóa khối đang kéo
+        draggedElement = null;
+        draggedPieceData = null;
+
+        if (placed) {
             checkForLineClear();
-            
             if (availablePieces.every(p => p === null)) {
                 generateNewPieces();
             }
-            
             if (checkGameOver()) {
-                showNotification('Thua rồi!', 'Không còn nước đi nào. Hãy thử lại nhé!', () => {
-                    setupLevel(currentLevel);
-                    initGame();
-                });
+                showNotification('Thua rồi!', 'Không còn nước đi nào. Hãy thử lại nhé!', () => { initGame(); });
                 playSound('lose');
             }
-
         } else {
-            playSound('click'); // Âm thanh báo lỗi
+            // Nếu không đặt được, tái tạo lại các khối ở vị trí cũ
+            pieceContainer.innerHTML = '';
+            availablePieces.forEach((p, i) => {
+                if (p) pieceContainer.appendChild(renderPiece(p, i));
+            });
         }
-        
-        clearPreview();
     }
+
+    function getCellFromPoint(x, y) {
+        const element = document.elementFromPoint(x, y);
+        return element ? element.closest('.grid-cell') : null;
+    }
+
 
     // --- LOGIC XỬ LÝ GAME ---
     
@@ -270,8 +287,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 boardState[r][c] = COLOR_MAP[piece.color];
                 block.classList.add(`block-${piece.color}`);
             }
-            
-            // Xóa block preview nếu có
             if(cell.firstElementChild) cell.firstElementChild.remove();
             cell.appendChild(block);
         });
@@ -286,15 +301,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const c = startCol + pos[0];
             const cell = gameBoard.children[r * GRID_SIZE + c];
             cell.classList.add('preview');
-            
-            // Thêm block preview
             const block = document.createElement('div');
             block.classList.add('block');
-            if (piece.crateIndex === i) {
-                block.classList.add('crate');
-            } else {
-                block.classList.add(`block-${piece.color}`);
-            }
+            if (piece.crateIndex === i) block.classList.add('crate');
+            else block.classList.add(`block-${piece.color}`);
             cell.appendChild(block);
         });
     }
@@ -302,7 +312,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function clearPreview() {
         document.querySelectorAll('.grid-cell.preview').forEach(cell => {
             cell.classList.remove('preview');
-            // Xóa block preview
             if (cell.firstElementChild && !boardState[cell.dataset.row][cell.dataset.col]) {
                 cell.innerHTML = '';
             }
@@ -311,23 +320,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function checkForLineClear() {
         let linesToClear = { rows: [], cols: [] };
-
-        // Check rows
         for (let r = 0; r < GRID_SIZE; r++) {
-            if (boardState[r].every(cell => cell !== 0)) {
-                linesToClear.rows.push(r);
-            }
+            if (boardState[r].every(cell => cell !== 0)) linesToClear.rows.push(r);
         }
-        // Check columns
         for (let c = 0; c < GRID_SIZE; c++) {
-            let fullCol = true;
-            for (let r = 0; r < GRID_SIZE; r++) {
-                if (boardState[r][c] === 0) {
-                    fullCol = false;
-                    break;
-                }
-            }
-            if (fullCol) linesToClear.cols.push(c);
+            if (boardState.every(row => row[c] !== 0)) linesToClear.cols.push(c);
         }
 
         if (linesToClear.rows.length > 0 || linesToClear.cols.length > 0) {
@@ -337,33 +334,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function clearLines(lines) {
         let clearedCrates = 0;
+        let points = (lines.rows.length + lines.cols.length) * 10;
         
-        lines.rows.forEach(r => {
-            for (let c = 0; c < GRID_SIZE; c++) {
+        const processCell = (r, c) => {
+            if (boardState[r][c] !== 0) {
                 if (boardState[r][c] === COLOR_MAP.crate) clearedCrates++;
                 boardState[r][c] = 0;
                 const cell = gameBoard.children[r * GRID_SIZE + c];
                 if(cell.firstElementChild) cell.firstElementChild.classList.add('clearing');
             }
-        });
+        };
 
-        lines.cols.forEach(c => {
-            for (let r = 0; r < GRID_SIZE; r++) {
-                if (boardState[r][c] !== 0) { // Tránh đếm trùng rương ở giao điểm
-                    if (boardState[r][c] === COLOR_MAP.crate) clearedCrates++;
-                    boardState[r][c] = 0;
-                    const cell = gameBoard.children[r * GRID_SIZE + c];
-                    if(cell.firstElementChild) cell.firstElementChild.classList.add('clearing');
-                }
-            }
-        });
+        lines.rows.forEach(r => { for (let c = 0; c < GRID_SIZE; c++) processCell(r, c); });
+        lines.cols.forEach(c => { for (let r = 0; r < GRID_SIZE; r++) processCell(r, c); });
         
         playSound('clear');
         
-        // Đợi hiệu ứng kết thúc rồi mới xóa DOM
         setTimeout(() => {
             document.querySelectorAll('.clearing').forEach(block => block.remove());
             cratesCollected += clearedCrates;
+            coins += points; // Thêm xu khi phá hàng
             updateUI();
             checkWinCondition();
         }, 400);
@@ -372,14 +362,19 @@ document.addEventListener('DOMContentLoaded', () => {
     function checkWinCondition() {
         if (cratesCollected >= cratesRequired) {
             playSound('win');
+            let coinBonus = 50 + currentLevel * 5;
+            coins += coinBonus;
+            updateUI();
+            
             if (currentLevel < MAX_LEVEL) {
-                showNotification('Thắng rồi!', `Bạn đã hoàn thành Level ${currentLevel}. Sẵn sàng cho level tiếp theo?`, () => {
+                showNotification('Thắng rồi!', `Bạn nhận được ${coinBonus} xu. Sẵn sàng cho level tiếp theo?`, () => {
                     currentLevel++;
                     initGame();
                 });
             } else {
                 showNotification('Chúc mừng!', 'Bạn đã phá đảo game!', () => {
                     currentLevel = 1;
+                    coins = 0; // Reset coins or not? Your choice.
                     initGame();
                 });
             }
@@ -393,13 +388,11 @@ document.addEventListener('DOMContentLoaded', () => {
         for (const piece of activePieces) {
             for (let r = 0; r < GRID_SIZE; r++) {
                 for (let c = 0; c < GRID_SIZE; c++) {
-                    if (canPlacePiece(piece, r, c)) {
-                        return false; // Vẫn còn ít nhất 1 nước đi
-                    }
+                    if (canPlacePiece(piece, r, c)) return false;
                 }
             }
         }
-        return true; // Không còn nước đi nào
+        return true;
     }
 
     // --- GIAO DIỆN & TƯƠNG TÁC ---
@@ -407,6 +400,7 @@ document.addEventListener('DOMContentLoaded', () => {
         levelNumberEl.textContent = currentLevel;
         cratesCollectedEl.textContent = cratesCollected;
         cratesRequiredEl.textContent = cratesRequired;
+        coinsAmountEl.textContent = coins;
     }
     
     function showNotification(title, message, callback) {
@@ -414,7 +408,6 @@ document.addEventListener('DOMContentLoaded', () => {
         notificationMessage.textContent = message;
         notificationModal.classList.remove('hidden');
         
-        // Gắn listener một lần duy nhất
         const newButton = notificationButton.cloneNode(true);
         notificationButton.parentNode.replaceChild(newButton, notificationButton);
         newButton.addEventListener('click', () => {
@@ -424,20 +417,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // Event Listeners
-    pieceContainer.addEventListener('dragstart', handleDragStart);
-    gameBoard.addEventListener('dragover', handleDragOver);
-    gameBoard.addEventListener('drop', handleDrop);
-    // Lắng nghe trên document để bắt dragend dù con trỏ ở đâu
-    document.addEventListener('dragend', handleDragEnd);
+    pieceContainer.addEventListener('mousedown', handleDragStart);
+    pieceContainer.addEventListener('touchstart', handleDragStart, { passive: false });
 
     settingsButton.addEventListener('click', () => { playSound('click'); settingsModal.classList.remove('hidden'); });
     storeButton.addEventListener('click', () => { playSound('click'); storeModal.classList.remove('hidden'); });
 
     closeModalButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', (e) => {
             playSound('click');
-            settingsModal.classList.add('hidden');
-            storeModal.classList.add('hidden');
+            e.target.closest('.modal-overlay').classList.add('hidden');
         });
     });
     
