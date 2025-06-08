@@ -2,61 +2,94 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Block Puzzle Game</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div id="game-container" class="game-container">
+
+    <div id="game-container">
+        <!-- Phần hiển thị thông tin game -->
         <header class="game-header">
-            <div class="stat-box">
-                <span class="label">ĐIỂM</span>
-                <span id="score" class="value">0</span>
+            <div class="level-display">
+                Level <span id="level-number">1</span>
             </div>
-            <div class="stat-box">
-                <span class="label">TIỀN</span>
-                <span id="coins" class="value">0 💰</span>
+            <div class="objective-display">
+                <div class="crate-icon"></div>
+                <span id="crates-collected">0</span> / <span id="crates-required">5</span>
             </div>
-            <button id="shop-open-btn" class="shop-button" aria-label="Mở cửa hàng">🛍️</button>
+            <div class="header-buttons">
+                <button id="store-button" class="icon-button store-icon"></button>
+                <button id="settings-button" class="icon-button settings-icon"></button>
+            </div>
         </header>
 
-        <main id="game-board-wrapper">
-            <div id="game-board"></div>
-        </main>
+        <!-- Lưới game -->
+        <div id="game-board"></div>
 
-        <footer class="game-footer">
-            <div id="available-blocks-container" class="available-blocks-container">
-                <!-- Các khối để chọn sẽ được JS vẽ vào đây -->
-            </div>
-            <div class="inventory-container">
-                <h3>Vật phẩm</h3>
-                <div id="inventory">
-                    <!-- Vật phẩm đã mua sẽ được JS vẽ vào đây -->
-                </div>
-            </div>
-        </footer>
+        <!-- Khu vực chứa các khối để kéo -->
+        <div id="piece-container"></div>
     </div>
 
-    <!-- Cửa hàng Modal -->
-    <div id="shop-modal" class="modal">
+    <!-- Modal Cài đặt -->
+    <div id="settings-modal" class="modal-overlay hidden">
         <div class="modal-content">
-            <button id="shop-close-btn" class="close-btn" aria-label="Đóng">×</button>
-            <h2>Cửa Hàng Vật Phẩm</h2>
-            <p>Tiền của bạn: <b id="shop-coins">0</b> 💰</p>
-            <div id="shop-items"></div>
-        </div>
-    </div>
-    
-    <!-- Game Over Modal -->
-    <div id="game-over-modal" class="modal">
-        <div class="modal-content">
-             <h2>Game Over!</h2>
-             <p>Điểm cuối cùng của bạn: <b id="final-score">0</b></p>
-             <button id="restart-btn" class="btn-primary">Chơi Lại</button>
+            <h2>Cài đặt</h2>
+            <div class="setting-item">
+                <label for="sound-toggle">Âm thanh</label>
+                <button id="sound-toggle" class="toggle-button on">Bật</button>
+            </div>
+            <button class="close-modal-button">Đóng</button>
         </div>
     </div>
 
-    <!-- Script đặt ở cuối cùng -->
+    <!-- Modal Cửa hàng -->
+    <div id="store-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2>Cửa hàng</h2>
+            <div class="store-grid">
+                <!-- 20 vật phẩm placeholder -->
+                <div class="store-item">Vật phẩm 1</div>
+                <div class="store-item">Vật phẩm 2</div>
+                <div class="store-item">Vật phẩm 3</div>
+                <div class="store-item">Vật phẩm 4</div>
+                <div class="store-item">Vật phẩm 5</div>
+                <div class="store-item">Vật phẩm 6</div>
+                <div class="store-item">Vật phẩm 7</div>
+                <div class="store-item">Vật phẩm 8</div>
+                <div class="store-item">Vật phẩm 9</div>
+                <div class="store-item">Vật phẩm 10</div>
+                <div class="store-item">Vật phẩm 11</div>
+                <div class="store-item">Vật phẩm 12</div>
+                <div class="store-item">Vật phẩm 13</div>
+                <div class="store-item">Vật phẩm 14</div>
+                <div class="store-item">Vật phẩm 15</div>
+                <div class="store-item">Vật phẩm 16</div>
+                <div class="store-item">Vật phẩm 17</div>
+                <div class="store-item">Vật phẩm 18</div>
+                <div class="store-item">Vật phẩm 19</div>
+                <div class="store-item">Vật phẩm 20</div>
+            </div>
+            <button class="close-modal-button">Đóng</button>
+        </div>
+    </div>
+
+    <!-- Modal thông báo -->
+    <div id="notification-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2 id="notification-title">Thông báo</h2>
+            <p id="notification-message">Nội dung thông báo.</p>
+            <button id="notification-button">OK</button>
+        </div>
+    </div>
+
+
+    <!-- Thư viện âm thanh ZzFX -->
+    <script src="https://cdn.jsdelivr.net/npm/zzfx@1.1.2/ZzFX.min.js"></script>
+    <!-- File script của game -->
     <script src="script.js"></script>
 </body>
 </html>
