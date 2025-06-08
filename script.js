@@ -44,26 +44,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // CỬA HÀNG VỚI 20 VẬT PHẨM
     const SHOP_ITEMS = [
-        // Phá Hủy
         { id: 'hammer', name: 'Búa Phá Khối', desc: 'Phá hủy 1 khối bất kỳ.', price: 50, icon: '🔨' },
         { id: 'row_rocket', name: 'Tên Lửa Hàng', desc: 'Xóa 1 hàng ngang.', price: 75, icon: '🚀' },
         { id: 'col_rocket', name: 'Tên Lửa Cột', desc: 'Xóa 1 hàng dọc.', price: 75, icon: '🚦' },
         { id: 'small_bomb', name: 'Bom Nhỏ', desc: 'Phá hủy khu vực 3x3.', price: 100, icon: '💣' },
         { id: 'large_bomb', name: 'Bom Lớn', desc: 'Phá hủy khu vực 5x5.', price: 200, icon: '💥' },
         { id: 'random_dynamite', name: 'Thuốc Nổ', desc: 'Phá hủy 10 khối ngẫu nhiên.', price: 150, icon: '🧨' },
-        // Hỗ Trợ
         { id: 'undo', name: 'Hoàn Tác', desc: 'Quay lại nước đi cuối.', price: 120, icon: '↩️' },
         { id: 'trash_can', name: 'Thùng Rác', desc: 'Vứt bỏ 1 khối bạn chọn.', price: 40, icon: '🗑️' },
         { id: 'reroll', name: 'Làm Mới', desc: 'Đổi 3 khối đang chờ.', price: 60, icon: '🔄' },
-        // Tạo Khối Đặc Biệt
         { id: 'single_block', name: 'Khối Đơn', desc: 'Lấy 1 khối 1x1.', price: 30, icon: '🧱' },
         { id: 'i_block', name: 'Gạch Vàng', desc: 'Lấy 1 khối I (thanh dài).', price: 80, icon: '📏' },
-        // Trang Trí (Mua 1 lần)
         { id: 'theme_beach', name: 'Chủ đề Biển', desc: 'Giao diện bãi biển.', price: 500, icon: '🏖️', type: 'theme' },
         { id: 'theme_space', name: 'Chủ đề Vũ Trụ', desc: 'Giao diện không gian.', price: 500, icon: '🌌', type: 'theme' },
         { id: 'skin_candy', name: 'Skin Kẹo Ngọt', desc: 'Các khối hình kẹo.', price: 750, icon: '🍬', type: 'skin' },
         { id: 'skin_metal', name: 'Skin Kim Loại', desc: 'Các khối hiệu ứng kim loại.', price: 750, icon: '🔩', type: 'skin' },
-        // Thêm các vật phẩm khác cho đủ 20
         { id: 'score_boost', name: 'x2 Điểm', desc: 'Nhân đôi điểm trong 30 giây.', price: 250, icon: '✨' },
         { id: 'coin_magnet', name: 'Nam châm tiền', desc: 'Nhận thêm tiền khi xóa hàng.', price: 300, icon: '🧲' },
         { id: 'clear_color', name: 'Bom Màu', desc: 'Xóa tất cả khối cùng màu.', price: 400, icon: '🎨' },
@@ -71,27 +66,20 @@ document.addEventListener('DOMContentLoaded', () => {
         { id: 'block_shuffle', name: 'Xáo Trộn', desc: 'Xáo trộn vị trí các khối trên bảng.', price: 220, icon: '🔀' },
     ];
     
-    let audioCtx; // Khai báo context âm thanh
-    // ... (Toàn bộ các hàm từ script.js lần trước)
-    // Mình sẽ dán lại toàn bộ code để đảm bảo không thiếu gì.
+    let audioCtx;
 
     // ---- ÂM THANH (WEB AUDIO API) ---- //
     function playSound(type) {
         if (!audioCtx) {
-            try {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            } catch(e) {
-                console.error("Web Audio API is not supported in this browser");
-                return;
-            }
+            try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+            catch(e) { console.error("Web Audio API is not supported in this browser"); return; }
         }
         const oscillator = audioCtx.createOscillator();
         const gainNode = audioCtx.createGain();
         oscillator.connect(gainNode);
         gainNode.connect(audioCtx.destination);
-        
         const now = audioCtx.currentTime;
-        gainNode.gain.setValueAtTime(0.5, now);
+        gainNode.gain.setValueAtTime(0.3, now);
 
         switch (type) {
             case 'place': oscillator.type = 'sine'; oscillator.frequency.setValueAtTime(261.63, now); break;
@@ -111,7 +99,6 @@ document.addEventListener('DOMContentLoaded', () => {
         loadData();
         activeItem = null;
         gameOverModal.style.display = 'none';
-
         generateNewBlocks();
         updateUI();
     }
@@ -147,10 +134,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function drawAvailableBlocks() {
         availableBlocksEl.innerHTML = '';
         availableBlocks.forEach(block => {
-            if (block) {
-                const blockEl = createBlockElement(block);
-                availableBlocksEl.appendChild(blockEl);
-            }
+            if (block) availableBlocksEl.appendChild(createBlockElement(block));
         });
     }
 
@@ -172,9 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (block.matrix[r][c]) {
                     const gridRow = startRow + r;
                     const gridCol = startCol + c;
-                    if (gridRow >= ROWS || gridCol >= COLS || gridRow < 0 || gridCol < 0 || grid[gridRow][gridCol]) {
-                        return false;
-                    }
+                    if (gridRow >= ROWS || gridCol >= COLS || gridRow < 0 || gridCol < 0 || grid[gridRow][gridCol]) return false;
                 }
             }
         }
@@ -195,12 +177,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function clearLines() {
         let rowsToClear = [];
         let colsToClear = [];
-        for (let r = 0; r < ROWS; r++) {
-            if (grid[r].every(cell => cell)) rowsToClear.push(r);
-        }
-        for (let c = 0; c < COLS; c++) {
-            if (grid.every(row => row[c])) colsToClear.push(c);
-        }
+        for (let r = 0; r < ROWS; r++) if (grid[r].every(cell => cell)) rowsToClear.push(r);
+        for (let c = 0; c < COLS; c++) if (grid.every(row => row[c])) colsToClear.push(c);
 
         const clearedCount = rowsToClear.length + colsToClear.length;
         if (clearedCount === 0) return;
@@ -209,28 +187,18 @@ document.addEventListener('DOMContentLoaded', () => {
         score += clearedCount * 10 * clearedCount;
         coins += clearedCount * 5;
 
-        // Animate clearing
-        rowsToClear.forEach(r => {
-            for(let c=0; c < COLS; c++) board.children[r * COLS + c].style.transform = 'scale(0)';
-        });
-        colsToClear.forEach(c => {
-            for(let r=0; r < ROWS; r++) board.children[r * COLS + c].style.transform = 'scale(0)';
-        });
+        rowsToClear.forEach(r => { for(let c=0; c < COLS; c++) board.children[r * COLS + c].style.transform = 'scale(0)'; });
+        colsToClear.forEach(c => { for(let r=0; r < ROWS; r++) board.children[r * COLS + c].style.transform = 'scale(0)'; });
 
         setTimeout(() => {
-            rowsToClear.forEach(r => {
-                for (let c = 0; c < COLS; c++) grid[r][c] = null;
-            });
-            colsToClear.forEach(c => {
-                for (let r = 0; r < ROWS; r++) grid[r][c] = null;
-            });
+            rowsToClear.forEach(r => grid[r].fill(null));
+            colsToClear.forEach(c => grid.forEach(row => row[c] = null));
             updateUI();
         }, 200);
     }
     
     function checkGameOver() {
-        if (availableBlocks.every(block => block === null)) return;
-
+        if (availableBlocks.every(block => !block)) return;
         for (const block of availableBlocks) {
             if (block) {
                 for (let r = 0; r <= ROWS - block.matrix.length; r++) {
@@ -240,14 +208,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         }
-        
         playSound('gameOver');
         finalScoreEl.innerText = score;
         gameOverModal.style.display = 'flex';
         saveData();
     }
 
-    // ---- LOGIC KÉO THẢ VÀ BÓNG MỜ ---- //
     function getGridCoordsFromEvent(e) {
         const rect = board.getBoundingClientRect();
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -260,9 +226,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function clearShadow() {
-        document.querySelectorAll('.cell.shadow, .cell.invalid-shadow').forEach(c => {
-            c.classList.remove('shadow', 'invalid-shadow');
-        });
+        document.querySelectorAll('.cell.shadow, .cell.invalid-shadow').forEach(c => c.classList.remove('shadow', 'invalid-shadow'));
     }
 
     function drawShadow(block, startRow, startCol) {
@@ -283,18 +247,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function handleDragStart(e) {
-        // Chỉ bắt đầu kéo nếu click vào .block-container
         const target = e.target.closest('.block-container');
         if (!target) return;
-        playSound('click');
-
         const blockIndex = parseInt(target.dataset.blockIndex);
-        if (availableBlocks[blockIndex] === null) return;
-
+        if (!availableBlocks[blockIndex]) return;
+        
+        playSound('click');
         draggedBlock = { data: availableBlocks[blockIndex], element: target };
         const rect = target.getBoundingClientRect();
-        dragOffsetX = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
-        dragOffsetY = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        dragOffsetX = clientX - rect.left;
+        dragOffsetY = clientY - rect.top;
         
         const clone = target.cloneNode(true);
         clone.classList.add('dragging');
@@ -323,7 +287,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function handleDragEnd(e) {
         if (!draggedBlock) return;
-
         const { row, col } = getGridCoordsFromEvent(e);
         
         if (checkPlacement(draggedBlock.data, row, col)) {
@@ -335,7 +298,7 @@ document.addEventListener('DOMContentLoaded', () => {
             clearLines();
             updateUI();
 
-            if (availableBlocks.every(b => b === null)) {
+            if (availableBlocks.every(b => !b)) {
                 generateNewBlocks();
                 updateUI();
             }
@@ -362,7 +325,7 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('block_inventory', JSON.stringify(inventory));
     }
     function loadData() {
-        coins = parseInt(localStorage.getItem('block_coins')) || 100;
+        coins = parseInt(localStorage.getItem('block_coins')) || 200; // Bắt đầu với 200 tiền
         inventory = JSON.parse(localStorage.getItem('block_inventory')) || {};
     }
     function openShop() {
@@ -370,12 +333,12 @@ document.addEventListener('DOMContentLoaded', () => {
         shopItemsEl.innerHTML = '';
         SHOP_ITEMS.forEach(item => {
             const canAfford = coins >= item.price;
-            const isOwned = item.type && inventory[item.id]; // Check for themes/skins
+            const isOwned = item.type && inventory[item.id];
             let btnHTML;
             if (isOwned) {
                 btnHTML = `<button class="buy-btn" disabled>Đã sở hữu</button>`;
             } else {
-                btnHTML = `<button class="buy-btn" data-item-id="${item.id}" data-price="${item.price}" ${!canAfford ? 'disabled' : ''}>${item.price} 💰</button>`;
+                btnHTML = `<button class="buy-btn" data-item-id="${item.id}" ${!canAfford ? 'disabled' : ''}>${item.price} 💰</button>`;
             }
 
             const itemEl = document.createElement('div');
@@ -394,8 +357,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function buyItem(e) {
         if (!e.target.classList.contains('buy-btn')) return;
         playSound('click');
-        const button = e.target;
-        const itemId = button.dataset.itemId;
+        const itemId = e.target.dataset.itemId;
         const itemData = SHOP_ITEMS.find(i => i.id === itemId);
         if (coins >= itemData.price) {
             coins -= itemData.price;
@@ -411,7 +373,7 @@ document.addEventListener('DOMContentLoaded', () => {
         for (const itemId in inventory) {
             if (inventory[itemId] > 0) {
                 const itemData = SHOP_ITEMS.find(i => i.id === itemId);
-                if (!itemData.type) { // Chỉ hiển thị vật phẩm tiêu hao
+                if (itemData && !itemData.type) {
                     const itemEl = document.createElement('button');
                     itemEl.className = 'inventory-item';
                     itemEl.innerHTML = `${itemData.icon}<span class="item-quantity">${inventory[itemId]}</span>`;
