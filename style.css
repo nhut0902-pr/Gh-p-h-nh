@@ -8,14 +8,12 @@
     --shadow-color: rgba(255, 255, 255, 0.3);
     --invalid-shadow-color: rgba(255, 50, 50, 0.4);
 }
-
 * {
     box-sizing: border-box;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
 }
-
 body {
     background-color: var(--bg-color);
     color: var(--text-color);
@@ -27,7 +25,6 @@ body {
     padding: 10px;
     overflow: hidden;
 }
-
 .game-container {
     width: 100%;
     max-width: 400px;
@@ -35,7 +32,6 @@ body {
     flex-direction: column;
     gap: 15px;
 }
-
 .game-header {
     display: flex;
     justify-content: space-between;
@@ -44,12 +40,10 @@ body {
     background-color: var(--stat-box-bg);
     border-radius: 10px;
 }
-
 .stat-box { text-align: center; flex-grow: 1; }
 .stat-box .label { font-size: 0.8rem; opacity: 0.7; }
 .stat-box .value { font-size: 1.5rem; font-weight: bold; }
 .shop-button { font-size: 2rem; background: none; border: none; cursor: pointer; }
-
 #game-board-wrapper { position: relative; }
 #game-board {
     display: grid;
@@ -59,7 +53,6 @@ body {
     border-radius: 5px;
     aspect-ratio: 1 / 1;
 }
-
 .cell {
     background-color: var(--grid-cell-bg);
     border: 1px solid rgba(0, 0, 0, 0.1);
@@ -71,14 +64,7 @@ body {
 .cell.L { background-color: #FD971F; } .cell.J { background-color: #66D9EF; }
 .cell.I { background-color: #A6E22E; } .cell.S { background-color: #E6DB74; }
 .cell.Z { background-color: #F92672; } .cell.X { background-color: #43a047; }
-
-/* Cấu trúc footer mới */
-.game-footer {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
+.game-footer { display: flex; flex-direction: column; gap: 15px; }
 .available-blocks-container {
     display: flex;
     justify-content: space-around;
@@ -88,7 +74,6 @@ body {
     border-radius: 10px;
     padding: 15px;
 }
-
 .block-container {
     cursor: grab;
     display: flex;
@@ -104,17 +89,14 @@ body {
     pointer-events: none;
     opacity: 0.8;
 }
-
 .mini-grid { display: grid; }
 .mini-cell { width: 12px; height: 12px; }
-
 .inventory-container {
     background-color: var(--stat-box-bg);
     border-radius: 10px;
     padding: 10px;
 }
 h3 { margin-top: 0; font-size: 1rem; opacity: 0.8; text-align: center; }
-
 #inventory {
     display: flex; flex-wrap: wrap; gap: 10px;
     justify-content: center; min-height: 50px;
@@ -130,8 +112,6 @@ h3 { margin-top: 0; font-size: 1rem; opacity: 0.8; text-align: center; }
     position: absolute; bottom: 2px; right: 5px; font-size: 0.8rem;
     font-weight: bold; background-color: rgba(0,0,0,0.5); border-radius: 50%; padding: 2px 5px;
 }
-
-/* Cửa hàng & Modal */
 .modal {
     display: none; position: fixed; z-index: 100;
     left: 0; top: 0; width: 100%; height: 100%;
