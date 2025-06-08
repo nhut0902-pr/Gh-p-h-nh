@@ -3,65 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Block Puzzle Game - Upgraded!</title>
+    <title>Game Ghép Hình</title>
+    <!-- Liên kết đến file CSS -->
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="game-wrapper"> <!-- Thêm một lớp bọc ngoài để rung màn hình -->
-        <div class="game-container">
-            <!-- Phần hiển thị thông tin game -->
-            <header class="game-header">
-                <div class="objective-display">
-                    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAABrUlEQVR4nO2WvU7DMBCFP0gVUSpUSYGKFRoYGBiJgYGFhYWJkWBgYJTEwsLCwoCEilRCQ4M6qBL9kCQCaeI4dtL2bXJkTbL3fP+/78frEcfxP4oAfgFmgevATuD6swK8BvYBA2B+eQE2gXOge/c+oGrwYgGegtOAGeADWAFmgbsB9B7g/mpY2YCtgB7gXDACh8AZcBG4BYxU6qUf4BHYBMzPx/cO4OaApwHPAk+AR8BvYAYYAxaBxwB2J8BfAZdAd3w73gGngHPAWWD+LcB2AF8Bf7g4BjwGngDPgNfAmQDXAX4FvHDtBHAYeAI8A14DXwAnM1xrAL8C3nBtBHAc+AI8A14DXwGnMVxrAL8CnnBtBHAceAI8A14D3wAnM1xvAH8FPKttBHAUeAI8A94AXwAnM15rAH8FPK1tBHAUeAI8A94AvwAnM15rAL8CnrS2AeBowBHwCHgjfAKczDA1gHngV2B3AK0AjoAHwCPgDfEJcDLT1ADmgV+B3QG0AjiKHAEfgzfGJ8DJTFMDOAf+CmwO0ArgaHAEfAY+Md4AJzNdDeAc+CmwOEBnAMdYJEFsLso/AAAAAElFTkSuQmCC" alt="Crate Icon">
-                    <span id="crates-left">30</span>
-                </div>
-                <div class="coins-display">
-                    <span id="player-coins">0</span> 🪙
-                </div>
-                <div class="header-buttons">
-                    <button id="shop-button" class="icon-button">🛍️</button>
-                    <button id="restart-button" class="icon-button">🔄</button>
-                </div>
-            </header>
 
-            <!-- Lưới game chính -->
-            <div id="game-board-container"> <!-- Bọc ngoài lưới game -->
-                <div id="game-board"></div>
-                <!-- Nơi chứa các dòng chữ bay lên -->
-                <div id="floating-text-container"></div>
-            </div>
-
-            <!-- Khu vực chứa các khối để kéo -->
-            <footer class="pieces-container" id="pieces-container"></footer>
+    <div id="game-container" class="game-wrapper">
+        <h1>Ghép Hình</h1>
+        <div class="stats">
+            <span>Số bước: <b id="moves">0</b></span>
+            <span>Tiền: <b id="coins">0</b> 💰</span>
+        </div>
+        <div id="puzzle-board"></div>
+        <div class="controls">
+            <button id="reset-btn" class="btn">Chơi lại</button>
+            <button id="shop-btn" class="btn">Cửa Hàng</button>
         </div>
     </div>
 
-
-    <!-- Màn hình Game Over -->
-    <div id="game-over-screen" class="modal-overlay hidden">
+    <!-- Cửa hàng Modal -->
+    <div id="shop-modal" class="modal">
         <div class="modal-content">
-            <h2>Game Over!</h2>
-            <p>Bạn không thể đặt thêm khối nào.</p>
-            <p>Điểm của bạn: <span id="final-crates-cleared">0</span> thùng</p>
-            <button id="play-again-button">Chơi lại</button>
-        </div>
-    </div>
-
-    <!-- Cửa hàng -->
-    <div id="shop-modal" class="modal-overlay hidden">
-        <div class="modal-content shop">
-            <div class="shop-header">
-                <h2>Cửa Hàng</h2>
-                <div class="coins-display">
-                    <span id="shop-player-coins">0</span> 🪙
-                </div>
-                <button id="close-shop-button" class="close-button">×</button>
+            <span id="close-shop-btn" class="close-btn">×</span>
+            <h2>Cửa Hàng</h2>
+            <p>Số tiền của bạn: <b id="shop-coins">0</b> 💰</p>
+            <hr>
+            <div class="shop-items-container">
+                <!-- Các vật phẩm sẽ được thêm vào đây bằng JS -->
             </div>
-            <div id="shop-items-container"></div>
         </div>
     </div>
 
+    <!-- Liên kết đến file JavaScript (đặt ở cuối body để tối ưu tốc độ tải) -->
     <script src="script.js"></script>
 </body>
 </html>
