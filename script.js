@@ -70,6 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ---- ÂM THANH (WEB AUDIO API) ---- //
     function playSound(type) {
+        if (typeof(AudioContext) === 'undefined' && typeof(webkitAudioContext) === 'undefined') return;
         if (!audioCtx) {
             try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
             catch(e) { console.error("Web Audio API is not supported in this browser"); return; }
@@ -239,7 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const gridCol = startCol + c;
                     if (gridRow < ROWS && gridCol < COLS && gridRow >= 0 && gridCol >= 0) {
                         const cellIndex = gridRow * COLS + gridCol;
-                        board.children[cellIndex]?.classList.add(isValid ? 'shadow' : 'invalid-shadow');
+                        if(board.children[cellIndex]) board.children[cellIndex].classList.add(isValid ? 'shadow' : 'invalid-shadow');
                     }
                 }
             });
@@ -325,7 +326,7 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('block_inventory', JSON.stringify(inventory));
     }
     function loadData() {
-        coins = parseInt(localStorage.getItem('block_coins')) || 200; // Bắt đầu với 200 tiền
+        coins = parseInt(localStorage.getItem('block_coins')) || 200;
         inventory = JSON.parse(localStorage.getItem('block_inventory')) || {};
     }
     function openShop() {
@@ -340,14 +341,10 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 btnHTML = `<button class="buy-btn" data-item-id="${item.id}" ${!canAfford ? 'disabled' : ''}>${item.price} 💰</button>`;
             }
-
             const itemEl = document.createElement('div');
             itemEl.className = 'shop-item';
             itemEl.innerHTML = `
-                <div class="shop-item-info">
-                    <h4>${item.icon} ${item.name}</h4>
-                    <p>${item.desc}</p>
-                </div>
+                <div class="shop-item-info"><h4>${item.icon} ${item.name}</h4><p>${item.desc}</p></div>
                 ${btnHTML}
             `;
             shopItemsEl.appendChild(itemEl);
