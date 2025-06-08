@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Block Puzzle Game</title>
+    <title>Block Puzzle Game - New Version</title>
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,27 +12,34 @@
 <body>
 
     <div id="game-container">
-        <!-- Phần hiển thị thông tin game -->
+        <!-- Phần hiển thị thông tin game ở trên -->
         <header class="game-header">
-            <div class="level-display">
+            <div class="info-panel level-display">
                 Level <span id="level-number">1</span>
             </div>
-            <div class="objective-display">
-                <div class="crate-icon"></div>
+            <div class="info-panel objective-display">
+                <div class="crate-icon icon"></div>
                 <span id="crates-collected">0</span> / <span id="crates-required">5</span>
             </div>
-            <div class="coin-display">
-                <div class="coin-icon"></div>
+            <div class="info-panel coin-display">
+                <div class="coin-icon icon"></div>
                 <span id="coins-amount">0</span>
-            </div>
-            <div class="header-buttons">
-                <button id="store-button" class="icon-button store-icon"></button>
-                <button id="settings-button" class="icon-button settings-icon"></button>
             </div>
         </header>
 
         <!-- Lưới game -->
-        <div id="game-board"></div>
+        <div id="game-board-wrapper">
+            <div id="game-board"></div>
+        </div>
+
+        <!-- Thanh vật phẩm hỗ trợ -->
+        <div class="action-bar">
+            <div id="power-up-bar">
+                <!-- Các vật phẩm đã mua sẽ hiện ở đây -->
+            </div>
+            <button id="store-button" class="action-button store-icon"></button>
+            <button id="settings-button" class="action-button settings-icon"></button>
+        </div>
 
         <!-- Khu vực chứa các khối để kéo -->
         <div id="piece-container"></div>
@@ -53,29 +60,9 @@
     <!-- Modal Cửa hàng -->
     <div id="store-modal" class="modal-overlay hidden">
         <div class="modal-content">
-            <h2>Cửa hàng</h2>
+            <h2>Cửa hàng Vật Phẩm</h2>
             <div class="store-grid">
-                <!-- 20 vật phẩm placeholder -->
-                <div class="store-item">Vật phẩm 1</div>
-                <div class="store-item">Vật phẩm 2</div>
-                <div class="store-item">Vật phẩm 3</div>
-                <div class="store-item">Vật phẩm 4</div>
-                <div class="store-item">Vật phẩm 5</div>
-                <div class="store-item">Vật phẩm 6</div>
-                <div class="store-item">Vật phẩm 7</div>
-                <div class="store-item">Vật phẩm 8</div>
-                <div class="store-item">Vật phẩm 9</div>
-                <div class="store-item">Vật phẩm 10</div>
-                <div class="store-item">Vật phẩm 11</div>
-                <div class="store-item">Vật phẩm 12</div>
-                <div class="store-item">Vật phẩm 13</div>
-                <div class="store-item">Vật phẩm 14</div>
-                <div class="store-item">Vật phẩm 15</div>
-                <div class="store-item">Vật phẩm 16</div>
-                <div class="store-item">Vật phẩm 17</div>
-                <div class="store-item">Vật phẩm 18</div>
-                <div class="store-item">Vật phẩm 19</div>
-                <div class="store-item">Vật phẩm 20</div>
+                <!-- 20 vật phẩm sẽ được JS tạo ra ở đây -->
             </div>
             <button class="close-modal-button">Đóng</button>
         </div>
