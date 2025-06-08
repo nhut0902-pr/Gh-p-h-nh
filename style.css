@@ -13,7 +13,7 @@
     box-sizing: border-box;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     user-select: none;
-    -webkit-tap-highlight-color: transparent; /* Tắt highlight khi chạm trên mobile */
+    -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -25,7 +25,7 @@ body {
     min-height: 100vh;
     margin: 0;
     padding: 10px;
-    overflow: hidden; /* Tránh scroll khi kéo thả */
+    overflow: hidden;
 }
 
 .game-container {
@@ -45,57 +45,48 @@ body {
     border-radius: 10px;
 }
 
-.stat-box {
-    text-align: center;
-    flex-grow: 1;
-}
-
+.stat-box { text-align: center; flex-grow: 1; }
 .stat-box .label { font-size: 0.8rem; opacity: 0.7; }
 .stat-box .value { font-size: 1.5rem; font-weight: bold; }
 .shop-button { font-size: 2rem; background: none; border: none; cursor: pointer; }
 
-#game-board-wrapper {
-    position: relative;
-}
-
+#game-board-wrapper { position: relative; }
 #game-board {
     display: grid;
     grid-template-columns: repeat(10, 1fr);
     background-color: var(--grid-bg);
     border: 3px solid var(--stat-box-bg);
     border-radius: 5px;
-    aspect-ratio: 1 / 1; /* Bảng 10x10 */
+    aspect-ratio: 1 / 1;
 }
 
 .cell {
     background-color: var(--grid-cell-bg);
     border: 1px solid rgba(0, 0, 0, 0.1);
-    transition: background-color 0.2s;
+    transition: background-color 0.2s, transform 0.2s;
 }
-/* Class cho bóng mờ */
 .cell.shadow { background-color: var(--shadow-color); }
 .cell.invalid-shadow { background-color: var(--invalid-shadow-color); }
+.cell.T { background-color: #AE81FF; } .cell.O { background-color: #F92672; }
+.cell.L { background-color: #FD971F; } .cell.J { background-color: #66D9EF; }
+.cell.I { background-color: #A6E22E; } .cell.S { background-color: #E6DB74; }
+.cell.Z { background-color: #F92672; } .cell.X { background-color: #43a047; }
 
-/* Màu của các khối */
-.cell.T { background-color: #AE81FF; }
-.cell.O { background-color: #F92672; }
-.cell.L { background-color: #FD971F; }
-.cell.J { background-color: #66D9EF; }
-.cell.I { background-color: #A6E22E; }
-.cell.S { background-color: #E6DB74; }
-.cell.Z { background-color: #F92672; }
-.cell.X { background-color: #43a047; } /* Khối 1x1 */
-
-.bottom-panel {
-    background-color: var(--stat-box-bg);
-    border-radius: 10px;
-    padding: 15px;
+/* Cấu trúc footer mới */
+.game-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
 }
+
 .available-blocks-container {
     display: flex;
     justify-content: space-around;
     align-items: center;
     min-height: 80px;
+    background-color: var(--stat-box-bg);
+    border-radius: 10px;
+    padding: 15px;
 }
 
 .block-container {
@@ -106,14 +97,11 @@ body {
     justify-content: center;
     transition: transform 0.2s;
 }
-.block-container:active {
-    cursor: grabbing;
-    transform: scale(1.1);
-}
+.block-container:active { cursor: grabbing; transform: scale(1.1); }
 .block-container.dragging {
-    position: fixed; /* Lấy khối ra khỏi luồng trang */
+    position: fixed;
     z-index: 1000;
-    pointer-events: none; /* Cho phép sự kiện chuột xuyên qua */
+    pointer-events: none;
     opacity: 0.8;
 }
 
