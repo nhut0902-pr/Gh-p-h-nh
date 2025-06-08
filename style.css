@@ -5,12 +5,15 @@
     --text-color: #ffffff;
     --accent-color: #f1c40f;
     --stat-box-bg: #1d1b36;
+    --shadow-color: rgba(255, 255, 255, 0.3);
+    --invalid-shadow-color: rgba(255, 50, 50, 0.4);
 }
 
 * {
     box-sizing: border-box;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     user-select: none;
+    -webkit-tap-highlight-color: transparent; /* Tắt highlight khi chạm trên mobile */
 }
 
 body {
@@ -22,6 +25,7 @@ body {
     min-height: 100vh;
     margin: 0;
     padding: 10px;
+    overflow: hidden; /* Tránh scroll khi kéo thả */
 }
 
 .game-container {
@@ -46,21 +50,12 @@ body {
     flex-grow: 1;
 }
 
-.stat-box .label {
-    font-size: 0.8rem;
-    opacity: 0.7;
-}
+.stat-box .label { font-size: 0.8rem; opacity: 0.7; }
+.stat-box .value { font-size: 1.5rem; font-weight: bold; }
+.shop-button { font-size: 2rem; background: none; border: none; cursor: pointer; }
 
-.stat-box .value {
-    font-size: 1.5rem;
-    font-weight: bold;
-}
-
-.shop-button {
-    font-size: 2rem;
-    background: none;
-    border: none;
-    cursor: pointer;
+#game-board-wrapper {
+    position: relative;
 }
 
 #game-board {
@@ -69,13 +64,17 @@ body {
     background-color: var(--grid-bg);
     border: 3px solid var(--stat-box-bg);
     border-radius: 5px;
-    aspect-ratio: 10 / 20; /* Bảng 10x20 */
+    aspect-ratio: 1 / 1; /* Bảng 10x10 */
 }
 
 .cell {
     background-color: var(--grid-cell-bg);
     border: 1px solid rgba(0, 0, 0, 0.1);
+    transition: background-color 0.2s;
 }
+/* Class cho bóng mờ */
+.cell.shadow { background-color: var(--shadow-color); }
+.cell.invalid-shadow { background-color: var(--invalid-shadow-color); }
 
 /* Màu của các khối */
 .cell.T { background-color: #AE81FF; }
@@ -84,155 +83,89 @@ body {
 .cell.J { background-color: #66D9EF; }
 .cell.I { background-color: #A6E22E; }
 .cell.S { background-color: #E6DB74; }
-.cell.Z { background-color: #F92672; } /* Cho giống O */
+.cell.Z { background-color: #F92672; }
+.cell.X { background-color: #43a047; } /* Khối 1x1 */
 
 .bottom-panel {
-    display: flex;
-    gap: 10px;
-}
-
-.next-blocks-container, .inventory-container {
     background-color: var(--stat-box-bg);
     border-radius: 10px;
-    padding: 10px;
-    flex: 1;
+    padding: 15px;
 }
-
-h3 {
-    margin-top: 0;
-    font-size: 1rem;
-    opacity: 0.8;
-    text-align: center;
-}
-
-#next-blocks {
+.available-blocks-container {
     display: flex;
     justify-content: space-around;
     align-items: center;
-    min-height: 50px;
+    min-height: 80px;
 }
 
-.mini-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 10px);
-    grid-template-rows: repeat(4, 10px);
-}
-.mini-cell {
-    width: 10px;
-    height: 10px;
-}
-
-
-#inventory {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    justify-content: center;
-    min-height: 50px;
-}
-
-.inventory-item {
-    background-color: #4f4c7a;
-    border: 2px solid var(--accent-color);
-    border-radius: 8px;
-    width: 50px;
-    height: 50px;
-    font-size: 1.5rem;
-    cursor: pointer;
-    position: relative;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.inventory-item.active {
-    box-shadow: 0 0 15px var(--accent-color);
-    transform: scale(1.1);
-}
-
-.item-quantity {
-    position: absolute;
-    bottom: 2px;
-    right: 5px;
-    font-size: 0.8rem;
-    font-weight: bold;
-    background-color: rgba(0,0,0,0.5);
-    border-radius: 50%;
-    padding: 2px 5px;
-}
-
-
-/* Cửa hàng */
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 100;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.7);
-    justify-content: center;
-    align-items: center;
-}
-
-.modal-content {
-    background-color: #39365b;
-    padding: 20px;
-    border-radius: 15px;
-    width: 90%;
-    max-width: 500px;
-    position: relative;
-    animation: zoomIn 0.3s;
-}
-
-@keyframes zoomIn {
-    from { transform: scale(0.5); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
-}
-
-.close-btn {
-    position: absolute;
-    top: 10px;
-    right: 20px;
-    font-size: 30px;
-    cursor: pointer;
-}
-
-#shop-items {
-    max-height: 60vh;
-    overflow-y: auto;
+.block-container {
+    cursor: grab;
     display: flex;
     flex-direction: column;
-    gap: 10px;
-}
-
-.shop-item {
-    display: flex;
-    justify-content: space-between;
     align-items: center;
-    background-color: var(--grid-bg);
-    padding: 15px;
-    border-radius: 10px;
+    justify-content: center;
+    transition: transform 0.2s;
+}
+.block-container:active {
+    cursor: grabbing;
+    transform: scale(1.1);
+}
+.block-container.dragging {
+    position: fixed; /* Lấy khối ra khỏi luồng trang */
+    z-index: 1000;
+    pointer-events: none; /* Cho phép sự kiện chuột xuyên qua */
+    opacity: 0.8;
 }
 
-.shop-item-info {
-    text-align: left;
+.mini-grid { display: grid; }
+.mini-cell { width: 12px; height: 12px; }
+
+.inventory-container {
+    background-color: var(--stat-box-bg);
+    border-radius: 10px;
+    padding: 10px;
 }
+h3 { margin-top: 0; font-size: 1rem; opacity: 0.8; text-align: center; }
+
+#inventory {
+    display: flex; flex-wrap: wrap; gap: 10px;
+    justify-content: center; min-height: 50px;
+}
+.inventory-item {
+    background-color: #4f4c7a; border: 2px solid var(--accent-color);
+    border-radius: 8px; width: 50px; height: 50px; font-size: 1.5rem;
+    cursor: pointer; position: relative; display: flex;
+    justify-content: center; align-items: center;
+}
+.inventory-item.active { box-shadow: 0 0 15px var(--accent-color); transform: scale(1.1); }
+.item-quantity {
+    position: absolute; bottom: 2px; right: 5px; font-size: 0.8rem;
+    font-weight: bold; background-color: rgba(0,0,0,0.5); border-radius: 50%; padding: 2px 5px;
+}
+
+/* Cửa hàng & Modal */
+.modal {
+    display: none; position: fixed; z-index: 100;
+    left: 0; top: 0; width: 100%; height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    justify-content: center; align-items: center;
+}
+.modal-content {
+    background-color: #39365b; padding: 20px;
+    border-radius: 15px; width: 90%; max-width: 500px;
+    position: relative; animation: zoomIn 0.3s; text-align: center;
+}
+@keyframes zoomIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.close-btn { position: absolute; top: 10px; right: 20px; font-size: 30px; cursor: pointer; }
+#shop-items { max-height: 60vh; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+.shop-item { display: flex; justify-content: space-between; align-items: center;
+    background-color: var(--grid-bg); padding: 15px; border-radius: 10px; }
+.shop-item-info { text-align: left; }
 .shop-item-info h4 { margin: 0 0 5px; font-size: 1.2rem; }
 .shop-item-info p { margin: 0; font-size: 0.8rem; opacity: 0.8; }
-
 .buy-btn {
-    background-color: var(--accent-color);
-    color: #000;
-    border: none;
-    padding: 10px 15px;
-    border-radius: 8px;
-    font-weight: bold;
-    cursor: pointer;
+    background-color: var(--accent-color); color: #000; border: none;
+    padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer;
+    font-size: 1rem;
 }
-
-.buy-btn:disabled {
-    background-color: #888;
-    cursor: not-allowed;
-}
+.buy-btn:disabled { background-color: #888; cursor: not-allowed; }
