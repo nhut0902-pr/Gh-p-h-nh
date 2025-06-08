@@ -1,298 +1,453 @@
-// Mã được đặt trong một hàm IIFE để tránh xung đột với các biến toàn cục.
-(() => {
-    // ---- PHẦN 1: KIỂM TRA MÔI TRƯỜNG & LẤY CÁC PHẦN TỬ ---- //
-    // Sự kiện DOMContentLoaded đảm bảo HTML đã được tải xong trước khi chạy JS.
-    document.addEventListener('DOMContentLoaded', () => {
-        const requiredIds = ['game-board', 'score', 'coins', 'shop-open-btn', 'shop-modal', 'game-over-modal', 'available-blocks-container', 'inventory'];
-        for (const id of requiredIds) {
-            if (!document.getElementById(id)) {
-                console.error(`Lỗi nghiêm trọng: Không tìm thấy phần tử với ID #${id}. Game không thể khởi chạy.`);
-                return; // Dừng thực thi script nếu thiếu phần tử quan trọng.
-            }
+document.addEventListener('DOMContentLoaded', () => {
+
+    // --- CẤU HÌNH GAME ---
+    const GRID_SIZE = 9;
+    const MAX_LEVEL = 100;
+
+    // --- LƯU TRỮ TRẠNG THÁI GAME ---
+    let boardState = []; // 2D array: 0 = empty, 1-4 = color, 5 = crate
+    let currentLevel = 1;
+    let cratesCollected = 0;
+    let cratesRequired = 5;
+    let availablePieces = [];
+    let isSoundOn = true;
+    let isDragging = false;
+    let draggedPiece = null;
+
+    // --- CÁC PHẦN TỬ DOM ---
+    const gameBoard = document.getElementById('game-board');
+    const pieceContainer = document.getElementById('piece-container');
+    const levelNumberEl = document.getElementById('level-number');
+    const cratesCollectedEl = document.getElementById('crates-collected');
+    const cratesRequiredEl = document.getElementById('crates-required');
+
+    // Modals
+    const settingsModal = document.getElementById('settings-modal');
+    const storeModal = document.getElementById('store-modal');
+    const notificationModal = document.getElementById('notification-modal');
+    const notificationTitle = document.getElementById('notification-title');
+    const notificationMessage = document.getElementById('notification-message');
+    const notificationButton = document.getElementById('notification-button');
+    
+    // Nút
+    const settingsButton = document.getElementById('settings-button');
+    const storeButton = document.getElementById('store-button');
+    const soundToggleButton = document.getElementById('sound-toggle');
+    const closeModalButtons = document.querySelectorAll('.close-modal-button');
+
+    // --- ĐỊNH NGHĨA HÌNH DẠNG KHỐI & MÀU SẮC ---
+    const PIECE_SHAPES = {
+        // I
+        i2: [[0, 0], [1, 0]], i3: [[0, 0], [1, 0], [2, 0]], i4: [[0, 0], [1, 0], [2, 0], [3, 0]],
+        // L
+        l3: [[0, 0], [1, 0], [1, 1]], l4: [[0, 0], [1, 0], [2, 0], [2, 1]],
+        // J
+        j3: [[0, 1], [1, 1], [1, 0]], j4: [[0, 1], [1, 1], [2, 1], [2, 0]],
+        // T
+        t3: [[0, 0], [1, 0], [2, 0], [1, 1]],
+        // O
+        o4: [[0, 0], [0, 1], [1, 0], [1, 1]],
+        // S, Z
+        s: [[1, 0], [2, 0], [0, 1], [1, 1]], z: [[0, 0], [1, 0], [1, 1], [2, 1]],
+        // Dots
+        dot1: [[0, 0]], dot2: [[0,0], [0,1]],
+    };
+    const COLORS = ['blue', 'orange', 'pink', 'yellow'];
+    const COLOR_MAP = { blue: 1, orange: 2, pink: 3, yellow: 4, crate: 5 };
+    
+    // --- ÂM THANH (sử dụng ZzFX) ---
+    // zzfx is loaded from CDN
+    const playSound = (sound) => {
+        if (!isSoundOn) return;
+        switch (sound) {
+            case 'place': zzfx(...[, , 90, .01, .03, .06, 1, 1.5, , , , , , , 1, , , .05, .01]); break;
+            case 'clear': zzfx(...[1.05, , 224, .04, .13, .23, 4, .8, , , 436, .07, , .1, , .2, , .54, .05]); break;
+            case 'win': zzfx(...[1.5, , 440, .1, .2, .3, 1, 1.5, 4, 2, , , , .1, , .1, , .8, .1]); break;
+            case 'lose': zzfx(...[, .1, 120, .2, .3, .4, 4, 2, , , , , , .2, , .2, , .8, .1]); break;
+            case 'click': zzfx(...[, , 500, .01, .01, .1, 1, 0, , , , , , , , , , .02]); break;
+        }
+    };
+
+    // --- KHỞI TẠO GAME ---
+    function initGame() {
+        setupLevel(currentLevel);
+        createBoard();
+        generateNewPieces();
+        updateUI();
+    }
+    
+    function setupLevel(level) {
+        currentLevel = level;
+        // Công thức tính số rương cần thu thập, tăng dần
+        cratesRequired = 4 + Math.floor(level / 2); 
+        cratesCollected = 0;
+        boardState = Array(GRID_SIZE).fill(0).map(() => Array(GRID_SIZE).fill(0));
+    }
+
+    function createBoard() {
+        gameBoard.innerHTML = '';
+        gameBoard.style.gridTemplateColumns = `repeat(${GRID_SIZE}, 1fr)`;
+        for (let i = 0; i < GRID_SIZE * GRID_SIZE; i++) {
+            const cell = document.createElement('div');
+            cell.classList.add('grid-cell');
+            cell.dataset.row = Math.floor(i / GRID_SIZE);
+            cell.dataset.col = i % GRID_SIZE;
+            gameBoard.appendChild(cell);
+        }
+    }
+
+    // --- LOGIC VỀ KHỐI ---
+    function generateNewPieces() {
+        availablePieces = [];
+        pieceContainer.innerHTML = '';
+        for (let i = 0; i < 3; i++) {
+            const piece = createRandomPiece();
+            availablePieces.push(piece);
+            pieceContainer.appendChild(renderPiece(piece, i));
+        }
+    }
+
+    function createRandomPiece() {
+        const shapeKeys = Object.keys(PIECE_SHAPES);
+        const randomShapeKey = shapeKeys[Math.floor(Math.random() * shapeKeys.length)];
+        const shape = PIECE_SHAPES[randomShapeKey];
+        const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+        
+        // 5% cơ hội có 1 rương trong khối
+        let hasCrate = Math.random() < 0.05;
+        let crateIndex = -1;
+        if (hasCrate && shape.length > 1) {
+            crateIndex = Math.floor(Math.random() * shape.length);
         }
 
-        // DOM Elements
-        const board = document.getElementById('game-board');
-        const scoreEl = document.getElementById('score');
-        const coinsEl = document.getElementById('coins');
-        const availableBlocksEl = document.getElementById('available-blocks-container');
-        const inventoryEl = document.getElementById('inventory');
-        const shopOpenBtn = document.getElementById('shop-open-btn');
-        const shopModal = document.getElementById('shop-modal');
-        const shopCloseBtn = document.getElementById('shop-close-btn');
-        const shopCoinsEl = document.getElementById('shop-coins');
-        const shopItemsEl = document.getElementById('shop-items');
-        const gameOverModal = document.getElementById('game-over-modal');
-        const finalScoreEl = document.getElementById('final-score');
-        const restartBtn = document.getElementById('restart-btn');
-
-        // Game Constants
-        const COLS = 10;
-        const ROWS = 10;
-        const SHAPES = {
-            'T': { matrix: [[1, 1, 1], [0, 1, 0]], name: 'T' }, 'O': { matrix: [[1, 1], [1, 1]], name: 'O' },
-            'L': { matrix: [[1, 0], [1, 0], [1, 1]], name: 'L' }, 'J': { matrix: [[0, 1], [0, 1], [1, 1]], name: 'J' },
-            'I': { matrix: [[1], [1], [1], [1]], name: 'I' }, 'S': { matrix: [[0, 1, 1], [1, 1, 0]], name: 'S' },
-            'Z': { matrix: [[1, 1, 0], [0, 1, 1]], name: 'Z' }, 'X': { matrix: [[1]], name: 'X' }
+        return {
+            shape,
+            color,
+            id: Date.now() + Math.random(),
+            crateIndex
         };
-        const SHAPE_KEYS = Object.keys(SHAPES);
-        const SHOP_ITEMS = [ /* ... Danh sách 20 vật phẩm từ lần trước ... */
-            { id: 'hammer', name: 'Búa Phá Khối', desc: 'Phá hủy 1 khối bất kỳ.', price: 50, icon: '🔨' },
-            { id: 'row_rocket', name: 'Tên Lửa Hàng', desc: 'Xóa 1 hàng ngang.', price: 75, icon: '🚀' },
-            { id: 'col_rocket', name: 'Tên Lửa Cột', desc: 'Xóa 1 hàng dọc.', price: 75, icon: '🚦' },
-            { id: 'small_bomb', name: 'Bom Nhỏ', desc: 'Phá hủy khu vực 3x3.', price: 100, icon: '💣' },
-            { id: 'large_bomb', name: 'Bom Lớn', desc: 'Phá hủy khu vực 5x5.', price: 200, icon: '💥' },
-            { id: 'random_dynamite', name: 'Thuốc Nổ', desc: 'Phá hủy 10 khối ngẫu nhiên.', price: 150, icon: '🧨' },
-            { id: 'undo', name: 'Hoàn Tác', desc: 'Quay lại nước đi cuối.', price: 120, icon: '↩️' },
-            { id: 'trash_can', name: 'Thùng Rác', desc: 'Vứt bỏ 1 khối bạn chọn.', price: 40, icon: '🗑️' },
-            { id: 'reroll', name: 'Làm Mới', desc: 'Đổi 3 khối đang chờ.', price: 60, icon: '🔄' },
-            { id: 'single_block', name: 'Khối Đơn', desc: 'Lấy 1 khối 1x1.', price: 30, icon: '🧱' },
-            { id: 'i_block', name: 'Gạch Vàng', desc: 'Lấy 1 khối I (thanh dài).', price: 80, icon: '📏' },
-            { id: 'theme_beach', name: 'Chủ đề Biển', desc: 'Giao diện bãi biển.', price: 500, icon: '🏖️', type: 'theme' },
-            { id: 'theme_space', name: 'Chủ đề Vũ Trụ', desc: 'Giao diện không gian.', price: 500, icon: '🌌', type: 'theme' },
-            { id: 'skin_candy', name: 'Skin Kẹo Ngọt', desc: 'Các khối hình kẹo.', price: 750, icon: '🍬', type: 'skin' },
-            { id: 'skin_metal', name: 'Skin Kim Loại', desc: 'Các khối hiệu ứng kim loại.', price: 750, icon: '🔩', type: 'skin' },
-            { id: 'score_boost', name: 'x2 Điểm', desc: 'Nhân đôi điểm trong 30 giây.', price: 250, icon: '✨' },
-            { id: 'coin_magnet', name: 'Nam châm tiền', desc: 'Nhận thêm tiền khi xóa hàng.', price: 300, icon: '🧲' },
-            { id: 'clear_color', name: 'Bom Màu', desc: 'Xóa tất cả khối cùng màu.', price: 400, icon: '🎨' },
-            { id: 'line_placer', name: 'Thả Dây', desc: 'Tạo 1 hàng khối ở dưới cùng.', price: 180, icon: '⚓' },
-            { id: 'block_shuffle', name: 'Xáo Trộn', desc: 'Xáo trộn vị trí các khối trên bảng.', price: 220, icon: '🔀' },
-        ];
+    }
+    
+    function renderPiece(pieceData, index) {
+        const pieceElement = document.createElement('div');
+        pieceElement.classList.add('piece');
+        pieceElement.dataset.pieceIndex = index;
+        pieceElement.draggable = true;
         
-        // Game State
-        let grid, score, coins, inventory, activeItem, availableBlocks, audioCtx;
-        let draggedBlock = null, dragOffsetX = 0, dragOffsetY = 0;
-
-        // ---- PHẦN 2: CÁC HÀM CHỨC NĂNG ---- //
+        const bounds = getPieceBounds(pieceData.shape);
+        pieceElement.style.gridTemplateColumns = `repeat(${bounds.width}, 1fr)`;
         
-        function playSound(type) {
-            if (!audioCtx) {
-                try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
-                catch(e) { console.warn("Web Audio API is not supported."); return; }
-            }
-            const o = audioCtx.createOscillator();
-            const g = audioCtx.createGain();
-            o.connect(g);
-            g.connect(audioCtx.destination);
-            const now = audioCtx.currentTime;
-            g.gain.setValueAtTime(0.2, now);
-            switch (type) {
-                case 'place': o.type = 'sine'; o.frequency.setValueAtTime(261.63, now); break;
-                case 'clear': o.type = 'sawtooth'; o.frequency.setValueAtTime(523.25, now); o.frequency.exponentialRampToValueAtTime(1046.50, now + 0.2); break;
-                case 'click': o.type = 'square'; o.frequency.setValueAtTime(440.00, now); break;
-                case 'gameOver': o.type = 'triangle'; o.frequency.setValueAtTime(164.81, now); o.frequency.exponentialRampToValueAtTime(130.81, now + 0.5); break;
-            }
-            g.gain.exponentialRampToValueAtTime(0.0001, now + 0.3);
-            o.start(now);
-            o.stop(now + 0.5);
-        }
+        pieceData.shape.forEach((pos, i) => {
+            const cell = document.createElement('div');
+            cell.classList.add('piece-cell');
+            cell.style.gridRow = pos[1] + 1;
+            cell.style.gridColumn = pos[0] + 1;
 
-        function createBlockElement(blockData) {
-            const container = document.createElement('div');
-            container.className = 'block-container';
-            container.draggable = true;
-            const gridEl = document.createElement('div');
-            gridEl.className = 'mini-grid';
-            gridEl.style.gridTemplateColumns = `repeat(${blockData.matrix[0].length}, 12px)`;
-            blockData.matrix.forEach(row => row.forEach(cell => {
-                const cellEl = document.createElement('div');
-                cellEl.className = 'mini-cell';
-                if (cell) cellEl.classList.add(blockData.name);
-                gridEl.appendChild(cellEl);
-            }));
-            container.appendChild(gridEl);
-            container.dataset.blockIndex = availableBlocks.indexOf(blockData);
-            return container;
-        }
-
-        function generateNewBlocks() {
-            availableBlocks = Array.from({ length: 3 }, () => SHAPES[SHAPE_KEYS[Math.floor(Math.random() * SHAPE_KEYS.length)]]);
-        }
-
-        function drawBoard() {
-            board.innerHTML = '';
-            for (let r = 0; r < ROWS; r++) {
-                for (let c = 0; c < COLS; c++) {
-                    const cell = document.createElement('div');
-                    cell.classList.add('cell');
-                    if (grid[r][c]) cell.classList.add(grid[r][c]);
-                    board.appendChild(cell);
-                }
+            const block = document.createElement('div');
+            block.classList.add('block');
+            if(pieceData.crateIndex === i) {
+                block.classList.add('crate');
+            } else {
+                block.classList.add(`block-${pieceData.color}`);
             }
-        }
+            cell.appendChild(block);
+            pieceElement.appendChild(cell);
+        });
+
+        return pieceElement;
+    }
+
+    function getPieceBounds(shape) {
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        shape.forEach(pos => {
+            minX = Math.min(minX, pos[0]);
+            maxX = Math.max(maxX, pos[0]);
+            minY = Math.min(minY, pos[1]);
+            maxY = Math.max(maxY, pos[1]);
+        });
+        return { width: maxX - minX + 1, height: maxY - minY + 1 };
+    }
+
+    // --- LOGIC KÉO THẢ ---
+    
+    function handleDragStart(e) {
+        isDragging = true;
+        const pieceIndex = e.target.dataset.pieceIndex;
+        draggedPiece = availablePieces[pieceIndex];
         
-        function updateUI() {
-            scoreEl.textContent = score;
-            coinsEl.innerHTML = `${coins} 💰`;
-            availableBlocksEl.innerHTML = '';
-            availableBlocks.forEach(block => {
-                if (block) availableBlocksEl.appendChild(createBlockElement(block));
-            });
-            drawInventory();
-        }
-
-        function checkPlacement(block, startRow, startCol) {
-            for (let r = 0; r < block.matrix.length; r++) {
-                for (let c = 0; c < block.matrix[r].length; c++) {
-                    if (block.matrix[r][c]) {
-                        const gridRow = startRow + r;
-                        const gridCol = startCol + c;
-                        if (gridRow >= ROWS || gridCol >= COLS || gridRow < 0 || gridCol < 0 || grid[gridRow][gridCol]) return false;
-                    }
-                }
-            }
-            return true;
-        }
-
-        function placeBlock(block, startRow, startCol) {
-            block.matrix.forEach((row, r) => row.forEach((cell, c) => {
-                if (cell) { grid[startRow + r][startCol + c] = block.name; score++; }
-            }));
-        }
-
-        function clearLines() { /* ... function code from previous attempts ... */ }
-        function checkGameOver() { /* ... function code from previous attempts ... */ }
-
-        // ... Các hàm kéo thả, shop, lưu/tải dữ liệu giữ nguyên ...
-        function clearLines() {
-            let rowsToClear = [], colsToClear = [];
-            for (let r = 0; r < ROWS; r++) if (grid[r].every(cell => cell)) rowsToClear.push(r);
-            for (let c = 0; c < COLS; c++) if (grid.every(row => row[c])) colsToClear.push(c);
-            const clearedCount = rowsToClear.length + colsToClear.length;
-            if (clearedCount === 0) return;
-            playSound('clear');
-            score += clearedCount * 10 * clearedCount; coins += clearedCount * 5;
-            const allCleared = [...rowsToClear.map(r => r*COLS), ...colsToClear.map(c => c)]; // Simplified
-            board.querySelectorAll('.cell').forEach((cell, index) => {
-                const r = Math.floor(index/COLS), c = index % COLS;
-                if(rowsToClear.includes(r) || colsToClear.includes(c)) cell.style.transform = 'scale(0)';
-            });
-            setTimeout(() => {
-                rowsToClear.forEach(r => grid[r].fill(null));
-                colsToClear.forEach(c => grid.forEach(row => row[c] = null));
-                drawBoard(); updateUI();
-            }, 200);
-        }
-        function checkGameOver() {
-            if (availableBlocks.every(block => !block)) return;
-            for (const block of availableBlocks) {
-                if (block) {
-                    for (let r = 0; r <= ROWS - block.matrix.length; r++) {
-                        for (let c = 0; c <= COLS - block.matrix[0].length; c++) {
-                            if (checkPlacement(block, r, c)) return;
-                        }
-                    }
-                }
-            }
-            playSound('gameOver'); finalScoreEl.innerText = score;
-            gameOverModal.classList.add('visible'); saveData();
-        }
-        function getGridCoordsFromEvent(e) {
-            const rect = board.getBoundingClientRect();
-            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            const x = clientX - rect.left; const y = clientY - rect.top;
-            const col = Math.floor(x / (rect.width / COLS)); const row = Math.floor(y / (rect.height / ROWS));
-            return { row, col };
-        }
-        function clearShadow() { document.querySelectorAll('.cell.shadow, .cell.invalid-shadow').forEach(c => c.classList.remove('shadow', 'invalid-shadow')); }
-        function drawShadow(block, startRow, startCol) {
-            clearShadow(); const isValid = checkPlacement(block, startRow, startCol);
-            block.matrix.forEach((row, r) => row.forEach((cell, c) => {
-                if (cell) {
-                    const gridRow = startRow + r; const gridCol = startCol + c;
-                    if (gridRow < ROWS && gridCol < COLS && gridRow >= 0 && gridCol >= 0) {
-                        const cellIndex = gridRow * COLS + gridCol;
-                        if(board.children[cellIndex]) board.children[cellIndex].classList.add(isValid ? 'shadow' : 'invalid-shadow');
-                    }
-                }
-            }));
-        }
-        function handleDragStart(e) {
-            const target = e.target.closest('.block-container'); if (!target) return;
-            const blockIndex = parseInt(target.dataset.blockIndex); if (!availableBlocks[blockIndex]) return;
-            playSound('click'); draggedBlock = { data: availableBlocks[blockIndex], element: target };
-            const rect = target.getBoundingClientRect(); const clientX = e.touches ? e.touches[0].clientX : e.clientX; const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            dragOffsetX = clientX - rect.left; dragOffsetY = clientY - rect.top;
-            const clone = target.cloneNode(true); clone.classList.add('dragging'); document.body.appendChild(clone);
-            draggedBlock.clone = clone; setTimeout(() => target.style.visibility = 'hidden', 0); moveDraggedElement(e);
-        }
-        function moveDraggedElement(e) {
-            if (!draggedBlock) return;
-            const clientX = e.touches ? e.touches[0].clientX : e.clientX; const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            draggedBlock.clone.style.left = `${clientX - dragOffsetX}px`; draggedBlock.clone.style.top = `${clientY - dragOffsetY}px`;
-        }
-        function handleDragMove(e) {
-            if (!draggedBlock) return; e.preventDefault();
-            moveDraggedElement(e); const { row, col } = getGridCoordsFromEvent(e);
-            drawShadow(draggedBlock.data, row, col);
-        }
-        function handleDragEnd(e) {
-            if (!draggedBlock) return;
-            const { row, col } = getGridCoordsFromEvent(e);
-            if (checkPlacement(draggedBlock.data, row, col)) {
-                placeBlock(draggedBlock.data, row, col); playSound('place');
-                const blockIndex = availableBlocks.indexOf(draggedBlock.data); availableBlocks[blockIndex] = null;
-                clearLines(); updateUI();
-                if (availableBlocks.every(b => !b)) { generateNewBlocks(); updateUI(); }
-                checkGameOver();
-            } else { draggedBlock.element.style.visibility = 'visible'; }
-            clearShadow(); document.body.removeChild(draggedBlock.clone); draggedBlock = null;
-        }
-        function saveData() { localStorage.setItem('block_puzzle_coins', coins); localStorage.setItem('block_puzzle_inventory', JSON.stringify(inventory)); }
-        function loadData() { coins = parseInt(localStorage.getItem('block_puzzle_coins')) || 200; inventory = JSON.parse(localStorage.getItem('block_puzzle_inventory')) || {}; }
-        function openShop() {
-            shopCoinsEl.innerText = coins; shopItemsEl.innerHTML = '';
-            SHOP_ITEMS.forEach(item => {
-                const canAfford = coins >= item.price; const isOwned = item.type && inventory[item.id];
-                let btnHTML = isOwned ? `<button class="btn-primary" disabled>Đã sở hữu</button>` : `<button class="btn-primary" data-item-id="${item.id}" ${!canAfford ? 'disabled' : ''}>${item.price} 💰</button>`;
-                const itemEl = document.createElement('div'); itemEl.className = 'shop-item';
-                itemEl.innerHTML = `<div class="shop-item-info"><h4>${item.icon} ${item.name}</h4><p>${item.desc}</p></div>${btnHTML}`;
-                shopItemsEl.appendChild(itemEl);
-            });
-            shopModal.classList.add('visible');
-        }
-        function buyItem(e) {
-            if (!e.target.matches('.btn-primary[data-item-id]')) return;
-            playSound('click'); const itemId = e.target.dataset.itemId; const itemData = SHOP_ITEMS.find(i => i.id === itemId);
-            if (coins >= itemData.price) {
-                coins -= itemData.price; inventory[itemId] = (inventory[itemId] || 0) + 1;
-                alert(`Mua thành công "${itemData.name}"!`);
-                saveData(); updateUI(); openShop();
-            }
-        }
-        function drawInventory() {
-            inventoryEl.innerHTML = '';
-            for (const itemId in inventory) {
-                if (inventory[itemId] > 0) {
-                    const itemData = SHOP_ITEMS.find(i => i.id === itemId);
-                    if (itemData && !itemData.type) {
-                        const itemEl = document.createElement('button'); itemEl.className = 'inventory-item';
-                        itemEl.innerHTML = `${itemData.icon}<span class="item-quantity">${inventory[itemId]}</span>`;
-                        inventoryEl.appendChild(itemEl);
-                    }
-                }
-            }
-        }
+        // Dùng setTimeout để tránh lỗi DOM khi thay đổi style ngay lập tức
+        setTimeout(() => {
+            e.target.classList.add('dragging');
+        }, 0);
         
-        // ---- PHẦN 3: KHỞI TẠO VÀ GẮN SỰ KIỆN ---- //
-        function init() {
-            // Gắn các sự kiện chỉ một lần
-            document.addEventListener('mousedown', handleDragStart);
-            document.addEventListener('mousemove', handleDragMove);
-            document.addEventListener('mouseup', handleDragEnd);
-            document.addEventListener('touchstart', handleDragStart, { passive: false });
-            document.addEventListener('touchmove', handleDragMove, { passive: false });
-            document.addEventListener('touchend', handleDragEnd);
-            restartBtn.addEventListener('click', () => { playSound('click'); gameOverModal.classList.remove('visible'); startGame(); });
-            shopOpenBtn.addEventListener('click', () => { playSound('click'); openShop(); });
-            shopCloseBtn.addEventListener('click', () => { playSound('click'); shopModal.classList.remove('visible'); });
-            shopItemsEl.addEventListener('click', buyItem);
+        // Chuyển dữ liệu (không cần thiết lắm nhưng là good practice)
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', pieceIndex);
+    }
+    
+    function handleDragEnd(e) {
+        isDragging = false;
+        e.target.classList.remove('dragging');
+        clearPreview();
+    }
+    
+    function handleDragOver(e) {
+        e.preventDefault();
+        const cell = e.target.closest('.grid-cell');
+        if (!cell || !draggedPiece) return;
+        
+        const row = parseInt(cell.dataset.row);
+        const col = parseInt(cell.dataset.col);
+        
+        clearPreview();
+        showPreview(draggedPiece, row, col);
+    }
+    
+    function handleDrop(e) {
+        e.preventDefault();
+        const cell = e.target.closest('.grid-cell');
+        if (!cell || !draggedPiece) return;
+        
+        const row = parseInt(cell.dataset.row);
+        const col = parseInt(cell.dataset.col);
+        
+        if (canPlacePiece(draggedPiece, row, col)) {
+            placePiece(draggedPiece, row, col);
             
-            // Bắt đầu game
-            startGame();
+            const pieceIndex = availablePieces.indexOf(draggedPiece);
+            const pieceElement = document.querySelector(`.piece[data-piece-index='${pieceIndex}']`);
+            if (pieceElement) pieceElement.remove();
+            
+            availablePieces[pieceIndex] = null;
+            draggedPiece = null;
+            
+            checkForLineClear();
+            
+            if (availablePieces.every(p => p === null)) {
+                generateNewPieces();
+            }
+            
+            if (checkGameOver()) {
+                showNotification('Thua rồi!', 'Không còn nước đi nào. Hãy thử lại nhé!', () => {
+                    setupLevel(currentLevel);
+                    initGame();
+                });
+                playSound('lose');
+            }
+
+        } else {
+            playSound('click'); // Âm thanh báo lỗi
+        }
+        
+        clearPreview();
+    }
+
+    // --- LOGIC XỬ LÝ GAME ---
+    
+    function canPlacePiece(piece, startRow, startCol) {
+        for (const pos of piece.shape) {
+            const r = startRow + pos[1];
+            const c = startCol + pos[0];
+            if (r >= GRID_SIZE || c >= GRID_SIZE || r < 0 || c < 0 || boardState[r][c] !== 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+    
+    function placePiece(piece, startRow, startCol) {
+        piece.shape.forEach((pos, i) => {
+            const r = startRow + pos[1];
+            const c = startCol + pos[0];
+            const cell = gameBoard.children[r * GRID_SIZE + c];
+            const block = document.createElement('div');
+            block.classList.add('block');
+            
+            if (piece.crateIndex === i) {
+                boardState[r][c] = COLOR_MAP.crate;
+                block.classList.add('crate');
+            } else {
+                boardState[r][c] = COLOR_MAP[piece.color];
+                block.classList.add(`block-${piece.color}`);
+            }
+            
+            // Xóa block preview nếu có
+            if(cell.firstElementChild) cell.firstElementChild.remove();
+            cell.appendChild(block);
+        });
+        playSound('place');
+    }
+    
+    function showPreview(piece, startRow, startCol) {
+        if (!canPlacePiece(piece, startRow, startCol)) return;
+        
+        piece.shape.forEach((pos, i) => {
+            const r = startRow + pos[1];
+            const c = startCol + pos[0];
+            const cell = gameBoard.children[r * GRID_SIZE + c];
+            cell.classList.add('preview');
+            
+            // Thêm block preview
+            const block = document.createElement('div');
+            block.classList.add('block');
+            if (piece.crateIndex === i) {
+                block.classList.add('crate');
+            } else {
+                block.classList.add(`block-${piece.color}`);
+            }
+            cell.appendChild(block);
+        });
+    }
+    
+    function clearPreview() {
+        document.querySelectorAll('.grid-cell.preview').forEach(cell => {
+            cell.classList.remove('preview');
+            // Xóa block preview
+            if (cell.firstElementChild && !boardState[cell.dataset.row][cell.dataset.col]) {
+                cell.innerHTML = '';
+            }
+        });
+    }
+
+    function checkForLineClear() {
+        let linesToClear = { rows: [], cols: [] };
+
+        // Check rows
+        for (let r = 0; r < GRID_SIZE; r++) {
+            if (boardState[r].every(cell => cell !== 0)) {
+                linesToClear.rows.push(r);
+            }
+        }
+        // Check columns
+        for (let c = 0; c < GRID_SIZE; c++) {
+            let fullCol = true;
+            for (let r = 0; r < GRID_SIZE; r++) {
+                if (boardState[r][c] === 0) {
+                    fullCol = false;
+                    break;
+                }
+            }
+            if (fullCol) linesToClear.cols.push(c);
         }
 
-        init(); // Chạy hàm khởi tạo
+        if (linesToClear.rows.length > 0 || linesToClear.cols.length > 0) {
+            clearLines(linesToClear);
+        }
+    }
+
+    function clearLines(lines) {
+        let clearedCrates = 0;
+        
+        lines.rows.forEach(r => {
+            for (let c = 0; c < GRID_SIZE; c++) {
+                if (boardState[r][c] === COLOR_MAP.crate) clearedCrates++;
+                boardState[r][c] = 0;
+                const cell = gameBoard.children[r * GRID_SIZE + c];
+                if(cell.firstElementChild) cell.firstElementChild.classList.add('clearing');
+            }
+        });
+
+        lines.cols.forEach(c => {
+            for (let r = 0; r < GRID_SIZE; r++) {
+                if (boardState[r][c] !== 0) { // Tránh đếm trùng rương ở giao điểm
+                    if (boardState[r][c] === COLOR_MAP.crate) clearedCrates++;
+                    boardState[r][c] = 0;
+                    const cell = gameBoard.children[r * GRID_SIZE + c];
+                    if(cell.firstElementChild) cell.firstElementChild.classList.add('clearing');
+                }
+            }
+        });
+        
+        playSound('clear');
+        
+        // Đợi hiệu ứng kết thúc rồi mới xóa DOM
+        setTimeout(() => {
+            document.querySelectorAll('.clearing').forEach(block => block.remove());
+            cratesCollected += clearedCrates;
+            updateUI();
+            checkWinCondition();
+        }, 400);
+    }
+    
+    function checkWinCondition() {
+        if (cratesCollected >= cratesRequired) {
+            playSound('win');
+            if (currentLevel < MAX_LEVEL) {
+                showNotification('Thắng rồi!', `Bạn đã hoàn thành Level ${currentLevel}. Sẵn sàng cho level tiếp theo?`, () => {
+                    currentLevel++;
+                    initGame();
+                });
+            } else {
+                showNotification('Chúc mừng!', 'Bạn đã phá đảo game!', () => {
+                    currentLevel = 1;
+                    initGame();
+                });
+            }
+        }
+    }
+
+    function checkGameOver() {
+        const activePieces = availablePieces.filter(p => p !== null);
+        if (activePieces.length === 0) return false;
+
+        for (const piece of activePieces) {
+            for (let r = 0; r < GRID_SIZE; r++) {
+                for (let c = 0; c < GRID_SIZE; c++) {
+                    if (canPlacePiece(piece, r, c)) {
+                        return false; // Vẫn còn ít nhất 1 nước đi
+                    }
+                }
+            }
+        }
+        return true; // Không còn nước đi nào
+    }
+
+    // --- GIAO DIỆN & TƯƠNG TÁC ---
+    function updateUI() {
+        levelNumberEl.textContent = currentLevel;
+        cratesCollectedEl.textContent = cratesCollected;
+        cratesRequiredEl.textContent = cratesRequired;
+    }
+    
+    function showNotification(title, message, callback) {
+        notificationTitle.textContent = title;
+        notificationMessage.textContent = message;
+        notificationModal.classList.remove('hidden');
+        
+        // Gắn listener một lần duy nhất
+        const newButton = notificationButton.cloneNode(true);
+        notificationButton.parentNode.replaceChild(newButton, notificationButton);
+        newButton.addEventListener('click', () => {
+            notificationModal.classList.add('hidden');
+            if(callback) callback();
+        });
+    }
+    
+    // Event Listeners
+    pieceContainer.addEventListener('dragstart', handleDragStart);
+    gameBoard.addEventListener('dragover', handleDragOver);
+    gameBoard.addEventListener('drop', handleDrop);
+    // Lắng nghe trên document để bắt dragend dù con trỏ ở đâu
+    document.addEventListener('dragend', handleDragEnd);
+
+    settingsButton.addEventListener('click', () => { playSound('click'); settingsModal.classList.remove('hidden'); });
+    storeButton.addEventListener('click', () => { playSound('click'); storeModal.classList.remove('hidden'); });
+
+    closeModalButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            playSound('click');
+            settingsModal.classList.add('hidden');
+            storeModal.classList.add('hidden');
+        });
     });
-})();
+    
+    soundToggleButton.addEventListener('click', () => {
+        isSoundOn = !isSoundOn;
+        soundToggleButton.classList.toggle('on', isSoundOn);
+        soundToggleButton.textContent = isSoundOn ? 'Bật' : 'Tắt';
+        playSound('click');
+    });
+
+    // --- BẮT ĐẦU GAME ---
+    initGame();
+});
