@@ -30,6 +30,7 @@ body {
     -webkit-user-select: none; /* Safari */
     -ms-user-select: none; /* IE 10+ */
     user-select: none;
+    -webkit-touch-callout: none; /* iOS Safari */
 }
 
 /* --- Container chính của game --- */
@@ -37,10 +38,10 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 20px;
+    gap: 15px;
     width: 100%;
     max-width: 420px;
-    padding: 20px;
+    padding: 15px;
 }
 
 /* --- Header --- */
@@ -50,28 +51,34 @@ body {
     align-items: center;
     width: 100%;
     background-color: var(--grid-bg);
-    padding: 10px 20px;
+    padding: 10px 15px;
     border-radius: 12px;
     box-shadow: 0 4px 10px var(--shadow-color);
+    flex-wrap: wrap; /* Cho phép wrap trên màn hình nhỏ */
+    gap: 10px;
 }
 
-.level-display, .objective-display {
-    font-size: 1.2rem;
-    font-weight: 700;
-}
-
-.objective-display {
+.level-display, .objective-display, .coin-display {
+    font-size: 1.1rem;
+    font-weight: 600;
+    background-color: var(--bg-color);
+    padding: 5px 12px;
+    border-radius: 20px;
     display: flex;
     align-items: center;
     gap: 8px;
-    background-color: var(--bg-color);
-    padding: 5px 15px;
-    border-radius: 20px;
+}
+
+.coin-icon {
+    width: 20px;
+    height: 20px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23eab308'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-12h2v2h-2v-2zm0 4h2v6h-2v-6z'/%3E%3C/svg%3E");
+    background-size: contain;
 }
 
 .crate-icon {
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath fill='%23f97316' d='M10 10 H 90 V 90 H 10 Z'/%3E%3Cpath fill='none' stroke='%23d2691e' stroke-width='8' d='M20 80 L 80 20 M20 20 L 80 80'/%3E%3C/svg%3E");
     background-size: contain;
 }
@@ -79,6 +86,7 @@ body {
 .header-buttons {
     display: flex;
     gap: 10px;
+    margin-left: auto; /* Đẩy nút qua phải */
 }
 
 .icon-button {
@@ -102,7 +110,7 @@ body {
 }
 
 .store-icon {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M21.707 12.707l-1.414-1.414L15 16.586V4h-2v12.586l-5.293-5.293-1.414 1.414L12 19.414zM3 20h18v2H3z'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M21.707 12.707l-1.414-1.414L15 16.586V4h-2v12.586l-5.293-5.293-1.414 1.414L12 19.414zM3 20h18v2H3z'/%3E%3E%3C/svg%3E");
 }
 
 
@@ -202,19 +210,21 @@ body {
     display: grid;
     position: relative;
     cursor: grab;
-    transition: transform 0.2s ease;
+    transition: transform 0.1s ease-out; /* Chỉ transition transform */
 }
 
 .piece:active {
     cursor: grabbing;
 }
 
+/* Style cho khối khi đang được kéo */
 .piece.dragging {
-    opacity: 0.8;
-    transform: scale(1.2);
+    opacity: 0.9;
+    /* transform sẽ được set bởi JS */
     z-index: 1000;
     position: absolute; /* Quan trọng để kéo ra khỏi luồng */
-    pointer-events: none; /* Tránh piece tự bắt sự kiện hover */
+    pointer-events: none; /* Tránh piece tự bắt sự kiện */
+    transition: none; /* Tắt transition khi đang kéo để di chuyển tức thì */
 }
 
 .piece-cell {
@@ -337,7 +347,7 @@ body {
 /* Cửa hàng */
 .store-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
     gap: 10px;
     margin-bottom: 20px;
     max-height: 300px;
@@ -349,7 +359,8 @@ body {
     border-radius: 8px;
     cursor: pointer;
     transition: background-color 0.2s;
+    font-size: 0.8rem;
 }
 .store-item:hover {
     background-color: var(--bg-color);
-}
+    }
