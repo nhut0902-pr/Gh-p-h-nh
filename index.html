@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Block Puzzle Game - Upgraded</title>
-    <!-- Liên kết đến file CSS -->
+    <title>Block Puzzle Game</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="game-container">
+    <div id="game-container" class="game-container">
         <header class="game-header">
             <div class="stat-box">
                 <span class="label">ĐIỂM</span>
@@ -18,15 +17,15 @@
                 <span class="label">TIỀN</span>
                 <span id="coins" class="value">0 💰</span>
             </div>
-            <button id="shop-open-btn" class="shop-button">🛍️</button>
+            <button id="shop-open-btn" class="shop-button" aria-label="Mở cửa hàng">🛍️</button>
         </header>
 
-        <div id="game-board-wrapper">
+        <main id="game-board-wrapper">
             <div id="game-board"></div>
-        </div>
+        </main>
 
-        <div class="game-footer">
-            <div class="available-blocks-container">
+        <footer class="game-footer">
+            <div id="available-blocks-container" class="available-blocks-container">
                 <!-- Các khối để chọn sẽ được JS vẽ vào đây -->
             </div>
             <div class="inventory-container">
@@ -35,13 +34,13 @@
                     <!-- Vật phẩm đã mua sẽ được JS vẽ vào đây -->
                 </div>
             </div>
-        </div>
+        </footer>
     </div>
 
     <!-- Cửa hàng Modal -->
     <div id="shop-modal" class="modal">
         <div class="modal-content">
-            <span id="shop-close-btn" class="close-btn">×</span>
+            <button id="shop-close-btn" class="close-btn" aria-label="Đóng">×</button>
             <h2>Cửa Hàng Vật Phẩm</h2>
             <p>Tiền của bạn: <b id="shop-coins">0</b> 💰</p>
             <div id="shop-items"></div>
@@ -53,11 +52,11 @@
         <div class="modal-content">
              <h2>Game Over!</h2>
              <p>Điểm cuối cùng của bạn: <b id="final-score">0</b></p>
-             <button id="restart-btn" class="buy-btn">Chơi Lại</button>
+             <button id="restart-btn" class="btn-primary">Chơi Lại</button>
         </div>
     </div>
 
-    <!-- Liên kết đến file JavaScript (đặt ở cuối) -->
+    <!-- Script đặt ở cuối cùng -->
     <script src="script.js"></script>
 </body>
 </html>
