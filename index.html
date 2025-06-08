@@ -2,40 +2,52 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Game Ghép Hình</title>
-    <!-- Liên kết đến file CSS -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Block Puzzle Game - Upgraded</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <div class="game-container">
+        <header class="game-header">
+            <div class="stat-box">
+                <span class="label">ĐIỂM</span>
+                <span id="score" class="value">0</span>
+            </div>
+            <div class="stat-box">
+                <span class="label">TIỀN</span>
+                <span id="coins" class="value">0 💰</span>
+            </div>
+            <button id="shop-open-btn" class="shop-button">🛍️</button>
+        </header>
 
-    <div id="game-container" class="game-wrapper">
-        <h1>Ghép Hình</h1>
-        <div class="stats">
-            <span>Số bước: <b id="moves">0</b></span>
-            <span>Tiền: <b id="coins">0</b> 💰</span>
-        </div>
-        <div id="puzzle-board"></div>
-        <div class="controls">
-            <button id="reset-btn" class="btn">Chơi lại</button>
-            <button id="shop-btn" class="btn">Cửa Hàng</button>
+        <div id="game-board"></div>
+
+        <div class="bottom-panel">
+            <div class="next-blocks-container">
+                <h3>Tiếp theo:</h3>
+                <div id="next-blocks"></div>
+            </div>
+            <div class="inventory-container">
+                <h3>Vật phẩm:</h3>
+                <div id="inventory">
+                    <!-- Vật phẩm đã mua sẽ hiện ở đây -->
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- Cửa hàng Modal -->
     <div id="shop-modal" class="modal">
         <div class="modal-content">
-            <span id="close-shop-btn" class="close-btn">×</span>
-            <h2>Cửa Hàng</h2>
-            <p>Số tiền của bạn: <b id="shop-coins">0</b> 💰</p>
-            <hr>
-            <div class="shop-items-container">
-                <!-- Các vật phẩm sẽ được thêm vào đây bằng JS -->
+            <span id="shop-close-btn" class="close-btn">×</span>
+            <h2>Cửa Hàng Vật Phẩm</h2>
+            <p>Tiền của bạn: <b id="shop-coins">0</b> 💰</p>
+            <div id="shop-items">
+                <!-- Các vật phẩm để bán sẽ được thêm vào đây -->
             </div>
         </div>
     </div>
 
-    <!-- Liên kết đến file JavaScript (đặt ở cuối body để tối ưu tốc độ tải) -->
     <script src="script.js"></script>
 </body>
 </html>
