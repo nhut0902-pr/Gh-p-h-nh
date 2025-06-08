@@ -10,7 +10,7 @@
 }
 * {
     box-sizing: border-box;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
 }
@@ -43,7 +43,7 @@ body {
 .stat-box { text-align: center; flex-grow: 1; }
 .stat-box .label { font-size: 0.8rem; opacity: 0.7; }
 .stat-box .value { font-size: 1.5rem; font-weight: bold; }
-.shop-button { font-size: 2rem; background: none; border: none; cursor: pointer; }
+.shop-button { font-size: 2rem; background: none; border: none; cursor: pointer; padding: 0 10px; }
 #game-board-wrapper { position: relative; }
 #game-board {
     display: grid;
@@ -118,22 +118,26 @@ h3 { margin-top: 0; font-size: 1rem; opacity: 0.8; text-align: center; }
     background-color: rgba(0, 0, 0, 0.7);
     justify-content: center; align-items: center;
 }
+.modal.visible { display: flex; }
 .modal-content {
     background-color: #39365b; padding: 20px;
     border-radius: 15px; width: 90%; max-width: 500px;
     position: relative; animation: zoomIn 0.3s; text-align: center;
 }
 @keyframes zoomIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-.close-btn { position: absolute; top: 10px; right: 20px; font-size: 30px; cursor: pointer; }
-#shop-items { max-height: 60vh; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+.close-btn {
+    position: absolute; top: 5px; right: 10px;
+    font-size: 30px; cursor: pointer; background: none; border: none; color: var(--text-color);
+}
+#shop-items { max-height: 60vh; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-top: 1rem; }
 .shop-item { display: flex; justify-content: space-between; align-items: center;
     background-color: var(--grid-bg); padding: 15px; border-radius: 10px; }
 .shop-item-info { text-align: left; }
 .shop-item-info h4 { margin: 0 0 5px; font-size: 1.2rem; }
 .shop-item-info p { margin: 0; font-size: 0.8rem; opacity: 0.8; }
-.buy-btn {
+.btn-primary {
     background-color: var(--accent-color); color: #000; border: none;
     padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer;
     font-size: 1rem;
 }
-.buy-btn:disabled { background-color: #888; cursor: not-allowed; }
+.btn-primary:disabled { background-color: #888; cursor: not-allowed; }
