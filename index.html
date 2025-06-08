@@ -20,18 +20,20 @@
             <button id="shop-open-btn" class="shop-button">🛍️</button>
         </header>
 
-        <div id="game-board"></div>
+        <div id="game-board-wrapper">
+            <div id="game-board"></div>
+        </div>
 
         <div class="bottom-panel">
-            <div class="next-blocks-container">
-                <h3>Tiếp theo:</h3>
-                <div id="next-blocks"></div>
+            <div class="available-blocks-container">
+                <!-- Các khối để chọn sẽ hiện ở đây -->
             </div>
-            <div class="inventory-container">
-                <h3>Vật phẩm:</h3>
-                <div id="inventory">
-                    <!-- Vật phẩm đã mua sẽ hiện ở đây -->
-                </div>
+        </div>
+
+        <div class="inventory-container">
+            <h3>Vật phẩm</h3>
+            <div id="inventory">
+                <!-- Vật phẩm đã mua sẽ hiện ở đây -->
             </div>
         </div>
     </div>
@@ -42,9 +44,16 @@
             <span id="shop-close-btn" class="close-btn">×</span>
             <h2>Cửa Hàng Vật Phẩm</h2>
             <p>Tiền của bạn: <b id="shop-coins">0</b> 💰</p>
-            <div id="shop-items">
-                <!-- Các vật phẩm để bán sẽ được thêm vào đây -->
-            </div>
+            <div id="shop-items"></div>
+        </div>
+    </div>
+    
+    <!-- Game Over Modal -->
+    <div id="game-over-modal" class="modal">
+        <div class="modal-content">
+             <h2>Game Over!</h2>
+             <p>Điểm cuối cùng của bạn: <b id="final-score">0</b></p>
+             <button id="restart-btn" class="buy-btn">Chơi Lại</button>
         </div>
     </div>
 
