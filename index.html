@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Block Puzzle Game</title>
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,6 +20,10 @@
             <div class="objective-display">
                 <div class="crate-icon"></div>
                 <span id="crates-collected">0</span> / <span id="crates-required">5</span>
+            </div>
+            <div class="coin-display">
+                <div class="coin-icon"></div>
+                <span id="coins-amount">0</span>
             </div>
             <div class="header-buttons">
                 <button id="store-button" class="icon-button store-icon"></button>
@@ -85,7 +89,6 @@
             <button id="notification-button">OK</button>
         </div>
     </div>
-
 
     <!-- Thư viện âm thanh ZzFX -->
     <script src="https://cdn.jsdelivr.net/npm/zzfx@1.1.2/ZzFX.min.js"></script>
