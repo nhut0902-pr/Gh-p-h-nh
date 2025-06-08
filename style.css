@@ -1,216 +1,238 @@
-/* CSS Variables cho Theming */
 :root {
-    --bg-color: #34495e;
-    --container-bg: #2c3e50;
-    --tile-bg: #9b59b6;
-    --tile-text-color: #ffffff;
-    --text-color: #ecf0f1;
-    --button-bg: #e67e22;
-    --button-hover-bg: #d35400;
+    --bg-color: #2c2a4a;
+    --grid-bg: #4f4c7a;
+    --grid-cell-bg: #403e64;
+    --text-color: #ffffff;
     --accent-color: #f1c40f;
+    --stat-box-bg: #1d1b36;
 }
 
-/* ----- CÁC CHỦ ĐỀ (THEMES) ----- */
-.theme-forest {
-    --bg-color: #16a085;
-    --container-bg: #1abc9c;
-    --tile-bg: #27ae60;
-    --button-bg: #2ecc71;
-    --button-hover-bg: #27ae60;
+* {
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    user-select: none;
 }
 
-.theme-ocean {
-    --bg-color: #2980b9;
-    --container-bg: #3498db;
-    --tile-bg: #1d5c86;
-    --button-bg: #3498db;
-    --button-hover-bg: #2980b9;
-}
-
-.theme-sunset {
-    --bg-color: #d35400;
-    --container-bg: #e67e22;
-    --tile-bg: #c0392b;
-    --button-bg: #e74c3c;
-    --button-hover-bg: #c0392b;
-}
-
-.theme-mono {
-    --bg-color: #2c3e50;
-    --container-bg: #34495e;
-    --tile-bg: #7f8c8d;
-    --text-color: #ecf0f1;
-    --button-bg: #95a5a6;
-    --button-hover-bg: #7f8c8d;
-    --accent-color: #bdc3c7;
-}
-
-/* ----- GIAO DIỆN CHÍNH ----- */
 body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
     margin: 0;
-    background-color: var(--bg-color);
-    color: var(--text-color);
-    transition: background-color 0.3s ease;
+    padding: 10px;
 }
 
-.game-wrapper {
-    background-color: var(--container-bg);
-    padding: 20px;
-    border-radius: 15px;
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-    width: 90vw;
-    max-width: 500px;
-    text-align: center;
-    transition: background-color 0.3s ease;
-}
-
-h1 {
-    color: var(--accent-color);
-    margin-top: 0;
-}
-
-.stats {
+.game-container {
+    width: 100%;
+    max-width: 400px;
     display: flex;
-    justify-content: space-around;
-    font-size: 1.2rem;
-    margin-bottom: 20px;
-}
-
-#puzzle-board {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 5px;
-    margin-bottom: 20px;
-    border: 5px solid var(--bg-color);
-    border-radius: 8px;
-    padding: 5px;
-    aspect-ratio: 1 / 1; /* Giữ cho bảng luôn vuông */
-}
-
-.tile {
-    background-color: var(--tile-bg);
-    color: var(--tile-text-color);
-    font-size: clamp(1.5rem, 5vw, 2.5rem); /* Font co giãn theo màn hình */
-    font-weight: bold;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: transform 0.2s ease-in-out, background-color 0.3s;
-    user-select: none;
-}
-
-.tile:hover {
-    transform: scale(1.05);
-}
-
-.tile.empty {
-    background-color: transparent;
-    cursor: default;
-    box-shadow: none;
-}
-.tile.empty:hover {
-    transform: none;
-}
-
-.controls {
-    display: flex;
-    justify-content: center;
+    flex-direction: column;
     gap: 15px;
 }
 
-.btn {
-    padding: 12px 25px;
-    font-size: 1rem;
+.game-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background-color: var(--stat-box-bg);
+    border-radius: 10px;
+}
+
+.stat-box {
+    text-align: center;
+    flex-grow: 1;
+}
+
+.stat-box .label {
+    font-size: 0.8rem;
+    opacity: 0.7;
+}
+
+.stat-box .value {
+    font-size: 1.5rem;
     font-weight: bold;
-    color: white;
-    background-color: var(--button-bg);
+}
+
+.shop-button {
+    font-size: 2rem;
+    background: none;
     border: none;
-    border-radius: 8px;
     cursor: pointer;
-    transition: background-color 0.3s;
 }
 
-.btn:hover {
-    background-color: var(--button-hover-bg);
+#game-board {
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    background-color: var(--grid-bg);
+    border: 3px solid var(--stat-box-bg);
+    border-radius: 5px;
+    aspect-ratio: 10 / 20; /* Bảng 10x20 */
 }
 
-/* ----- CỬA HÀNG (MODAL) ----- */
+.cell {
+    background-color: var(--grid-cell-bg);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Màu của các khối */
+.cell.T { background-color: #AE81FF; }
+.cell.O { background-color: #F92672; }
+.cell.L { background-color: #FD971F; }
+.cell.J { background-color: #66D9EF; }
+.cell.I { background-color: #A6E22E; }
+.cell.S { background-color: #E6DB74; }
+.cell.Z { background-color: #F92672; } /* Cho giống O */
+
+.bottom-panel {
+    display: flex;
+    gap: 10px;
+}
+
+.next-blocks-container, .inventory-container {
+    background-color: var(--stat-box-bg);
+    border-radius: 10px;
+    padding: 10px;
+    flex: 1;
+}
+
+h3 {
+    margin-top: 0;
+    font-size: 1rem;
+    opacity: 0.8;
+    text-align: center;
+}
+
+#next-blocks {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    min-height: 50px;
+}
+
+.mini-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 10px);
+    grid-template-rows: repeat(4, 10px);
+}
+.mini-cell {
+    width: 10px;
+    height: 10px;
+}
+
+
+#inventory {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    min-height: 50px;
+}
+
+.inventory-item {
+    background-color: #4f4c7a;
+    border: 2px solid var(--accent-color);
+    border-radius: 8px;
+    width: 50px;
+    height: 50px;
+    font-size: 1.5rem;
+    cursor: pointer;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.inventory-item.active {
+    box-shadow: 0 0 15px var(--accent-color);
+    transform: scale(1.1);
+}
+
+.item-quantity {
+    position: absolute;
+    bottom: 2px;
+    right: 5px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    background-color: rgba(0,0,0,0.5);
+    border-radius: 50%;
+    padding: 2px 5px;
+}
+
+
+/* Cửa hàng */
 .modal {
-    display: none; /* Ẩn mặc định */
+    display: none;
     position: fixed;
     z-index: 100;
     left: 0;
     top: 0;
     width: 100%;
     height: 100%;
-    overflow: auto;
-    background-color: rgba(0, 0, 0, 0.6);
-    align-items: center;
+    background-color: rgba(0, 0, 0, 0.7);
     justify-content: center;
+    align-items: center;
 }
 
 .modal-content {
-    background-color: var(--container-bg);
-    margin: auto;
+    background-color: #39365b;
     padding: 20px;
-    border-radius: 10px;
+    border-radius: 15px;
     width: 90%;
     max-width: 500px;
     position: relative;
-    animation: fadeIn 0.3s;
+    animation: zoomIn 0.3s;
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; transform: scale(0.9); }
-    to { opacity: 1; transform: scale(1); }
+@keyframes zoomIn {
+    from { transform: scale(0.5); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
 }
 
 .close-btn {
-    color: var(--text-color);
     position: absolute;
     top: 10px;
     right: 20px;
-    font-size: 28px;
-    font-weight: bold;
+    font-size: 30px;
     cursor: pointer;
+}
+
+#shop-items {
+    max-height: 60vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
 .shop-item {
     display: flex;
-    align-items: center;
     justify-content: space-between;
-    background-color: var(--bg-color);
+    align-items: center;
+    background-color: var(--grid-bg);
     padding: 15px;
-    border-radius: 8px;
-    margin-bottom: 10px;
+    border-radius: 10px;
 }
 
 .shop-item-info {
-   text-align: left;
+    text-align: left;
+}
+.shop-item-info h4 { margin: 0 0 5px; font-size: 1.2rem; }
+.shop-item-info p { margin: 0; font-size: 0.8rem; opacity: 0.8; }
+
+.buy-btn {
+    background-color: var(--accent-color);
+    color: #000;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
 }
 
-.shop-item-info h3 {
-    margin: 0 0 5px 0;
-    color: var(--accent-color);
-}
-.shop-item-info p {
-    margin: 0;
-    font-size: 0.9rem;
-}
-
-.shop-btn {
-    min-width: 100px;
-}
-
-.shop-btn:disabled {
-    background-color: #7f8c8d;
+.buy-btn:disabled {
+    background-color: #888;
     cursor: not-allowed;
-    opacity: 0.7;
 }
