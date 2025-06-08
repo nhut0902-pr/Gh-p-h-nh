@@ -1,241 +1,258 @@
-// Đợi cho toàn bộ nội dung trang được tải xong mới chạy script
 document.addEventListener('DOMContentLoaded', () => {
+    // ---- CÁC BIẾN VÀ HẰNG SỐ ---- //
+    const COLS = 10;
+    const ROWS = 20;
+    const BLOCK_SIZE = 30; // Kích thước mỗi ô (sẽ được tính tự động)
 
-    // DOM Elements
-    const board = document.getElementById('puzzle-board');
-    const movesEl = document.getElementById('moves');
+    const board = document.getElementById('game-board');
+    const scoreEl = document.getElementById('score');
     const coinsEl = document.getElementById('coins');
-    const resetBtn = document.getElementById('reset-btn');
-    const gameContainer = document.getElementById('game-container');
-
-    // Shop Elements
-    const shopBtn = document.getElementById('shop-btn');
-    const shopModal = document.getElementById('shop-modal');
-    const closeShopBtn = document.getElementById('close-shop-btn');
-    const shopCoinsEl = document.getElementById('shop-coins');
-    const shopItemsContainer = document.querySelector('.shop-items-container');
-
-    // Game State
-    const SIZE = 4;
-    let tiles = [];
-    let moves = 0;
-    let coins = 0;
-    let isGameWon = false;
+    const nextBlocksEl = document.getElementById('next-blocks');
+    const inventoryEl = document.getElementById('inventory');
     
-    // Shop State
-    let purchasedThemes = ['default'];
-    let activeTheme = 'default';
+    // Shop
+    const shopOpenBtn = document.getElementById('shop-open-btn');
+    const shopModal = document.getElementById('shop-modal');
+    const shopCloseBtn = document.getElementById('shop-close-btn');
+    const shopCoinsEl = document.getElementById('shop-coins');
+    const shopItemsEl = document.getElementById('shop-items');
 
-    const themes = [
-        { id: 'default', name: 'Mặc định', desc: 'Chủ đề màu tím và xanh cổ điển.', price: 0, icon: '🎨' },
-        { id: 'forest', name: 'Rừng Xanh', desc: 'Tông màu xanh lá cây mát mẻ.', price: 100, icon: '🌲' },
-        { id: 'ocean', name: 'Đại Dương', desc: 'Chủ đề xanh dương sâu thẳm.', price: 100, icon: '🌊' },
-        { id: 'sunset', name: 'Hoàng Hôn', desc: 'Tông màu cam và đỏ ấm áp.', price: 150, icon: '🌇' },
-        { id: 'mono', name: 'Đơn Sắc', desc: 'Giao diện đen trắng tối giản.', price: 200, icon: '🔳' }
+    let grid = createEmptyGrid();
+    let score = 0;
+    let coins = 0;
+    let inventory = {}; // { itemId: quantity }
+    let activeItem = null; // Vật phẩm đang được kích hoạt
+
+    // Hình dạng các khối (Tetrominos)
+    const SHAPES = {
+        'T': [[1, 1, 1], [0, 1, 0]],
+        'O': [[1, 1], [1, 1]],
+        'L': [[1, 0], [1, 0], [1, 1]],
+        'J': [[0, 1], [0, 1], [1, 1]],
+        'I': [[1], [1], [1], [1]],
+        'S': [[0, 1, 1], [1, 1, 0]],
+        'Z': [[1, 1, 0], [0, 1, 1]]
+    };
+    const SHAPE_KEYS = Object.keys(SHAPES);
+
+    // Cửa hàng vật phẩm
+    const SHOP_ITEMS = [
+        { id: 'hammer', name: 'Búa Phá Khối', desc: 'Phá hủy 1 khối bất kỳ.', price: 50, icon: '🔨' },
+        { id: 'row_rocket', name: 'Tên Lửa Hàng', desc: 'Xóa 1 hàng ngang.', price: 75, icon: '🚀' },
+        { id: 'bomb', name: 'Bom Nhỏ', desc: 'Phá hủy khu vực 3x3.', price: 100, icon: '💣' },
+        { id: 'swap', name: 'Đổi Khối', desc: 'Hoán đổi khối hiện tại.', price: 40, icon: '🔄' }
     ];
 
-    // --- LOCAL STORAGE FUNCTIONS ---
-    function saveState() {
-        localStorage.setItem('puzzle_coins', coins);
-        localStorage.setItem('puzzle_purchasedThemes', JSON.stringify(purchasedThemes));
-        localStorage.setItem('puzzle_activeTheme', activeTheme);
+    // ---- HÀM KHỞI TẠO VÀ VẼ ---- //
+
+    function createEmptyGrid() {
+        return Array.from({ length: ROWS }, () => Array(COLS).fill(null));
     }
 
-    function loadState() {
-        coins = parseInt(localStorage.getItem('puzzle_coins')) || 50; // Bắt đầu với 50 tiền
-        const savedThemes = JSON.parse(localStorage.getItem('puzzle_purchasedThemes'));
-        if (savedThemes) {
-            purchasedThemes = savedThemes;
+    // Hàm vẽ toàn bộ bảng game
+    function draw() {
+        board.innerHTML = '';
+        grid.forEach(row => {
+            row.forEach(cellValue => {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                if (cellValue) {
+                    cell.classList.add(cellValue); // Thêm class màu
+                }
+                board.appendChild(cell);
+            });
+        });
+        updateUI();
+    }
+
+    // Cập nhật điểm số, tiền và kho đồ
+    function updateUI() {
+        scoreEl.textContent = score;
+        coinsEl.innerHTML = `${coins} 💰`;
+        drawInventory();
+    }
+
+    // ---- LOGIC KHO ĐỒ VÀ CỬA HÀNG ---- //
+    
+    function loadData() {
+        coins = parseInt(localStorage.getItem('block_coins')) || 100; // Bắt đầu với 100 tiền
+        inventory = JSON.parse(localStorage.getItem('block_inventory')) || {};
+    }
+
+    function saveData() {
+        localStorage.setItem('block_coins', coins);
+        localStorage.setItem('block_inventory', JSON.stringify(inventory));
+    }
+
+    function drawInventory() {
+        inventoryEl.innerHTML = '';
+        for (const itemId in inventory) {
+            if (inventory[itemId] > 0) {
+                const itemData = SHOP_ITEMS.find(i => i.id === itemId);
+                const itemEl = document.createElement('button');
+                itemEl.className = 'inventory-item';
+                if (activeItem === itemId) {
+                    itemEl.classList.add('active');
+                }
+                itemEl.innerHTML = `
+                    ${itemData.icon}
+                    <span class="item-quantity">${inventory[itemId]}</span>
+                `;
+                itemEl.addEventListener('click', () => toggleActiveItem(itemId));
+                inventoryEl.appendChild(itemEl);
+            }
+        }
+    }
+
+    function toggleActiveItem(itemId) {
+        if (activeItem === itemId) {
+            activeItem = null; // Hủy kích hoạt
+            board.style.cursor = 'default';
         } else {
-            purchasedThemes = ['default']; // Đảm bảo theme mặc định luôn có
+            activeItem = itemId; // Kích hoạt
+            board.style.cursor = 'crosshair'; // Đổi con trỏ chuột để báo hiệu
         }
-        activeTheme = localStorage.getItem('puzzle_activeTheme') || 'default';
+        drawInventory();
+    }
+    
+    function useItem(row, col) {
+        if (!activeItem) return;
+
+        const itemInInventory = inventory[activeItem];
+        if (!itemInInventory || itemInInventory <= 0) return;
+        
+        let itemUsed = false;
+        switch(activeItem) {
+            case 'hammer':
+                if (grid[row][col]) {
+                    grid[row][col] = null;
+                    itemUsed = true;
+                }
+                break;
+            case 'row_rocket':
+                for(let c = 0; c < COLS; c++) {
+                    grid[row][c] = null;
+                }
+                itemUsed = true;
+                break;
+            // Thêm các case khác cho vật phẩm khác ở đây
+        }
+
+        if (itemUsed) {
+            inventory[activeItem]--;
+            if (inventory[activeItem] === 0) {
+                delete inventory[activeItem];
+            }
+            activeItem = null; // Tự động hủy kích hoạt sau khi dùng
+            board.style.cursor = 'default';
+            saveData();
+            draw();
+        }
     }
 
-    // --- THEME FUNCTIONS ---
-    function applyTheme(themeId) {
-        document.body.className = ''; // Reset class của body
-        if (themeId !== 'default') {
-            document.body.classList.add(`theme-${themeId}`);
-        }
-        activeTheme = themeId;
-        saveState();
-    }
 
-    // --- SHOP FUNCTIONS ---
     function openShop() {
-        updateShopUI();
+        shopCoinsEl.innerText = coins;
+        shopItemsEl.innerHTML = '';
+        SHOP_ITEMS.forEach(item => {
+            const canAfford = coins >= item.price;
+            const itemEl = document.createElement('div');
+            itemEl.className = 'shop-item';
+            itemEl.innerHTML = `
+                <div class="shop-item-info">
+                    <h4>${item.icon} ${item.name}</h4>
+                    <p>${item.desc}</p>
+                </div>
+                <button class="buy-btn" data-item-id="${item.id}" data-price="${item.price}" ${!canAfford ? 'disabled' : ''}>
+                    ${item.price} 💰
+                </button>
+            `;
+            shopItemsEl.appendChild(itemEl);
+        });
         shopModal.style.display = 'flex';
     }
 
-    function closeShop() {
-        shopModal.style.display = 'none';
-    }
+    function buyItem(e) {
+        if (!e.target.classList.contains('buy-btn')) return;
 
-    function updateShopUI() {
-        shopCoinsEl.innerText = coins;
-        shopItemsContainer.innerHTML = ''; // Xóa các item cũ
-
-        themes.forEach(theme => {
-            const itemEl = document.createElement('div');
-            itemEl.className = 'shop-item';
-            
-            const isPurchased = purchasedThemes.includes(theme.id);
-            const isActive = activeTheme === theme.id;
-
-            let buttonHTML;
-            if (isActive) {
-                buttonHTML = `<button class="btn shop-btn" disabled>Đang dùng</button>`;
-            } else if (isPurchased) {
-                buttonHTML = `<button class="btn shop-btn" data-theme-id="${theme.id}">Chọn</button>`;
-            } else {
-                const canAfford = coins >= theme.price;
-                buttonHTML = `<button class="btn shop-btn" data-theme-id="${theme.id}" data-price="${theme.price}" ${canAfford ? '' : 'disabled'}>${theme.price} 💰</button>`;
-            }
-
-            itemEl.innerHTML = `
-                <div class="shop-item-info">
-                    <h3>${theme.icon} ${theme.name}</h3>
-                    <p>${theme.desc}</p>
-                </div>
-                ${buttonHTML}
-            `;
-            shopItemsContainer.appendChild(itemEl);
-        });
-    }
-    
-    function handleShopClick(e) {
-        const button = e.target.closest('.shop-btn');
-        if (!button || button.disabled) return;
-
-        const themeId = button.dataset.themeId;
+        const button = e.target;
+        const itemId = button.dataset.itemId;
         const price = parseInt(button.dataset.price);
-        const isPurchased = purchasedThemes.includes(themeId);
 
-        if (isPurchased) {
-            applyTheme(themeId);
-        } else {
-            if (coins >= price) {
-                coins -= price;
-                purchasedThemes.push(themeId);
-                applyTheme(themeId);
-                alert(`Chúc mừng! Bạn đã mua thành công chủ đề "${themes.find(t=>t.id === themeId).name}".`);
-            }
-        }
-        updateUI();
-        updateShopUI();
-    }
-
-    // --- GAME LOGIC ---
-    function init() {
-        loadState();
-        applyTheme(activeTheme);
-        startGame();
-        addEventListeners();
-    }
-
-    function startGame() {
-        isGameWon = false;
-        moves = 0;
-        createBoard();
-        shuffleBoard();
-        renderBoard();
-        updateUI();
-    }
-    
-    function createBoard() {
-        tiles = [];
-        for (let i = 1; i < SIZE * SIZE; i++) {
-            tiles.push(i);
-        }
-        tiles.push(null); // Ô trống
-    }
-
-    function shuffleBoard() {
-        // Thuật toán xáo trộn Fisher-Yates
-        for (let i = tiles.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [tiles[i], tiles[j]] = [tiles[j], tiles[i]];
-        }
-        // Đảm bảo game có thể giải được (tạm thời đơn giản hoá)
-        // Một thuật toán đầy đủ cần kiểm tra số cặp nghịch thế.
-    }
-
-    function renderBoard() {
-        board.innerHTML = '';
-        tiles.forEach((tileValue, index) => {
-            const tileEl = document.createElement('div');
-            tileEl.classList.add('tile');
-            if (tileValue === null) {
-                tileEl.classList.add('empty');
-            } else {
-                tileEl.textContent = tileValue;
-                tileEl.dataset.value = tileValue;
-                tileEl.addEventListener('click', () => handleTileClick(index));
-            }
-            board.appendChild(tileEl);
-        });
-    }
-    
-    function handleTileClick(clickedIndex) {
-        if (isGameWon) return;
-
-        const emptyIndex = tiles.indexOf(null);
-        const { row: clickedRow, col: clickedCol } = getRowCol(clickedIndex);
-        const { row: emptyRow, col: emptyCol } = getRowCol(emptyIndex);
-
-        const isAdjacent = (Math.abs(clickedRow - emptyRow) + Math.abs(clickedCol - emptyCol)) === 1;
-
-        if (isAdjacent) {
-            [tiles[clickedIndex], tiles[emptyIndex]] = [tiles[emptyIndex], tiles[clickedIndex]];
-            moves++;
-            renderBoard();
+        if (coins >= price) {
+            coins -= price;
+            inventory[itemId] = (inventory[itemId] || 0) + 1;
+            
+            const itemData = SHOP_ITEMS.find(i => i.id === itemId);
+            alert(`Mua thành công "${itemData.name}"!`);
+            
+            saveData();
             updateUI();
-            checkWin();
+            openShop(); // Cập nhật lại shop
         }
     }
-    
-    function checkWin() {
-        for (let i = 0; i < tiles.length - 1; i++) {
-            if (tiles[i] !== i + 1) {
-                return false; // Chưa thắng
+
+    // ---- LOGIC GAME (Tạm thời đơn giản) ---- //
+    // Đây là phần khó nhất, mình sẽ làm một phiên bản cơ bản.
+    // Bạn sẽ cần phát triển thêm phần di chuyển, xoay và rơi của khối.
+    function clearLines() {
+        let linesCleared = 0;
+        for (let r = ROWS - 1; r >= 0; r--) {
+            if (grid[r].every(cell => cell !== null)) {
+                linesCleared++;
+                grid.splice(r, 1);
+                grid.unshift(Array(COLS).fill(null));
+                r++; // Kiểm tra lại hàng vừa dịch chuyển xuống
             }
         }
-        // Nếu vòng lặp hoàn thành, nghĩa là đã thắng
-        isGameWon = true;
-        const reward = 50 + Math.max(0, 100 - moves); // Thưởng dựa trên số bước
-        coins += reward;
-        updateUI();
-        saveState();
-        setTimeout(() => {
-            alert(`🎉 Chúc mừng, bạn đã thắng! 🎉\nSố bước: ${moves}\nBạn nhận được ${reward} 💰!`);
-        }, 300); // Đợi 1 chút để người dùng thấy ô cuối cùng di chuyển
-        return true;
-    }
-    
-    function getRowCol(index) {
-        return {
-            row: Math.floor(index / SIZE),
-            col: index % SIZE
-        };
+        if (linesCleared > 0) {
+            score += linesCleared * 10;
+            coins += linesCleared * 5; // Thưởng tiền khi xóa hàng
+            saveData();
+        }
     }
 
-    function updateUI() {
-        movesEl.textContent = moves;
-        coinsEl.textContent = coins;
+    function simulateGame() {
+        // Mô phỏng việc chơi game để bạn test
+        // Đặt ngẫu nhiên một vài khối vào bảng
+        for(let i=0; i<50; i++) {
+            const row = Math.floor(Math.random() * ROWS);
+            const col = Math.floor(Math.random() * COLS);
+            const shapeKey = SHAPE_KEYS[Math.floor(Math.random() * SHAPE_KEYS.length)];
+            if (grid[row][col] === null) {
+                grid[row][col] = shapeKey;
+            }
+        }
+        setInterval(clearLines, 2000); // Cứ 2s kiểm tra xóa hàng 1 lần
+        draw();
     }
+
+
+    // ---- GẮN CÁC SỰ KIỆN ---- //
+    shopOpenBtn.addEventListener('click', openShop);
+    shopCloseBtn.addEventListener('click', () => shopModal.style.display = 'none');
+    shopItemsEl.addEventListener('click', buyItem);
     
-    function addEventListeners() {
-        resetBtn.addEventListener('click', startGame);
-        shopBtn.addEventListener('click', openShop);
-        closeShopBtn.addEventListener('click', closeShop);
-        shopModal.addEventListener('click', (e) => {
-            if (e.target === shopModal) closeShop(); // Đóng modal khi click ra ngoài
-        });
-        shopItemsContainer.addEventListener('click', handleShopClick);
+    // Sự kiện click trên bảng để dùng vật phẩm
+    board.addEventListener('click', (e) => {
+        if (!activeItem) return;
+        
+        const rect = board.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        const col = Math.floor(x / (rect.width / COLS));
+        const row = Math.floor(y / (rect.height / ROWS));
+
+        useItem(row, col);
+    });
+
+    // ---- KHỞI CHẠY GAME ---- //
+    function init() {
+        loadData();
+        // Bạn sẽ thay thế hàm simulateGame bằng logic game thực của bạn
+        simulateGame(); 
     }
-    
-    // Khởi chạy game
+
     init();
-
 });
