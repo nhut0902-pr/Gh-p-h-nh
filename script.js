@@ -1,16 +1,31 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // ---- KIỂM TRA CÁC THÀNH PHẦN QUAN TRỌNG ---- //
+    // Bước này đảm bảo HTML và JS khớp nhau, nếu không sẽ báo lỗi rõ ràng.
+    const requiredIds = ['game-board', 'score', 'coins', 'shop-open-btn', 'shop-modal', 'game-over-modal'];
+    const requiredSelectors = ['.available-blocks-container', '#inventory'];
+    for (const id of requiredIds) {
+        if (!document.getElementById(id)) {
+            console.error(`Lỗi nghiêm trọng: Thiếu phần tử với ID #${id} trong file HTML.`);
+            alert(`Lỗi nghiêm trọng: Thiếu phần tử #${id}. Game không thể chạy. Vui lòng kiểm tra lại file index.html.`);
+            return;
+        }
+    }
+     for (const selector of requiredSelectors) {
+        if (!document.querySelector(selector)) {
+            console.error(`Lỗi nghiêm trọng: Thiếu phần tử với selector ${selector} trong file HTML.`);
+            alert(`Lỗi nghiêm trọng: Thiếu phần tử ${selector}. Game không thể chạy. Vui lòng kiểm tra lại file index.html.`);
+            return;
+        }
+    }
+
     // ---- CÁC BIẾN VÀ HẰNG SỐ ---- //
     const COLS = 10;
     const ROWS = 10;
-    
-    // DOM Elements
     const board = document.getElementById('game-board');
     const scoreEl = document.getElementById('score');
     const coinsEl = document.getElementById('coins');
     const availableBlocksEl = document.querySelector('.available-blocks-container');
     const inventoryEl = document.getElementById('inventory');
-    
-    // Modals & Shop
     const shopOpenBtn = document.getElementById('shop-open-btn');
     const shopModal = document.getElementById('shop-modal');
     const shopCloseBtn = document.getElementById('shop-close-btn');
@@ -20,20 +35,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const finalScoreEl = document.getElementById('final-score');
     const restartBtn = document.getElementById('restart-btn');
 
-    // Game State
-    let grid = [];
-    let score = 0;
-    let coins = 0;
-    let inventory = {};
-    let activeItem = null;
-    let availableBlocks = [];
-    
-    // Drag State
-    let draggedBlock = null;
-    let dragOffsetX = 0;
-    let dragOffsetY = 0;
+    let grid = [], score = 0, coins = 0, inventory = {}, activeItem = null, availableBlocks = [];
+    let draggedBlock = null, dragOffsetX = 0, dragOffsetY = 0;
 
-    // Hình dạng các khối
     const SHAPES = {
         'T': { matrix: [[1, 1, 1], [0, 1, 0]], name: 'T' }, 'O': { matrix: [[1, 1], [1, 1]], name: 'O' },
         'L': { matrix: [[1, 0], [1, 0], [1, 1]], name: 'L' }, 'J': { matrix: [[0, 1], [0, 1], [1, 1]], name: 'J' },
@@ -42,7 +46,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     const SHAPE_KEYS = Object.keys(SHAPES);
 
-    // CỬA HÀNG VỚI 20 VẬT PHẨM
     const SHOP_ITEMS = [
         { id: 'hammer', name: 'Búa Phá Khối', desc: 'Phá hủy 1 khối bất kỳ.', price: 50, icon: '🔨' },
         { id: 'row_rocket', name: 'Tên Lửa Hàng', desc: 'Xóa 1 hàng ngang.', price: 75, icon: '🚀' },
@@ -68,7 +71,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     let audioCtx;
 
-    // ---- ÂM THANH (WEB AUDIO API) ---- //
     function playSound(type) {
         if (typeof(AudioContext) === 'undefined' && typeof(webkitAudioContext) === 'undefined') return;
         if (!audioCtx) {
@@ -81,7 +83,6 @@ document.addEventListener('DOMContentLoaded', () => {
         gainNode.connect(audioCtx.destination);
         const now = audioCtx.currentTime;
         gainNode.gain.setValueAtTime(0.3, now);
-
         switch (type) {
             case 'place': oscillator.type = 'sine'; oscillator.frequency.setValueAtTime(261.63, now); break;
             case 'clear': oscillator.type = 'sawtooth'; oscillator.frequency.setValueAtTime(523.25, now); oscillator.frequency.exponentialRampToValueAtTime(1046.50, now + 0.2); break;
@@ -93,7 +94,6 @@ document.addEventListener('DOMContentLoaded', () => {
         oscillator.stop(now + 0.5);
     }
     
-    // ---- LOGIC GAME ---- //
     function startGame() {
         grid = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
         score = 0;
@@ -167,30 +167,22 @@ document.addEventListener('DOMContentLoaded', () => {
     function placeBlock(block, startRow, startCol) {
         block.matrix.forEach((row, r) => {
             row.forEach((cell, c) => {
-                if (cell) {
-                    grid[startRow + r][startCol + c] = block.name;
-                    score += 1;
-                }
+                if (cell) { grid[startRow + r][startCol + c] = block.name; score += 1; }
             });
         });
     }
 
     function clearLines() {
-        let rowsToClear = [];
-        let colsToClear = [];
+        let rowsToClear = [], colsToClear = [];
         for (let r = 0; r < ROWS; r++) if (grid[r].every(cell => cell)) rowsToClear.push(r);
         for (let c = 0; c < COLS; c++) if (grid.every(row => row[c])) colsToClear.push(c);
-
         const clearedCount = rowsToClear.length + colsToClear.length;
         if (clearedCount === 0) return;
-
         playSound('clear');
         score += clearedCount * 10 * clearedCount;
         coins += clearedCount * 5;
-
         rowsToClear.forEach(r => { for(let c=0; c < COLS; c++) board.children[r * COLS + c].style.transform = 'scale(0)'; });
         colsToClear.forEach(c => { for(let r=0; r < ROWS; r++) board.children[r * COLS + c].style.transform = 'scale(0)'; });
-
         setTimeout(() => {
             rowsToClear.forEach(r => grid[r].fill(null));
             colsToClear.forEach(c => grid.forEach(row => row[c] = null));
@@ -252,7 +244,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!target) return;
         const blockIndex = parseInt(target.dataset.blockIndex);
         if (!availableBlocks[blockIndex]) return;
-        
         playSound('click');
         draggedBlock = { data: availableBlocks[blockIndex], element: target };
         const rect = target.getBoundingClientRect();
@@ -260,12 +251,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
         dragOffsetX = clientX - rect.left;
         dragOffsetY = clientY - rect.top;
-        
         const clone = target.cloneNode(true);
         clone.classList.add('dragging');
         document.body.appendChild(clone);
         draggedBlock.clone = clone;
-        
         setTimeout(() => target.style.visibility = 'hidden', 0);
         moveDraggedElement(e);
     }
@@ -289,16 +278,13 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleDragEnd(e) {
         if (!draggedBlock) return;
         const { row, col } = getGridCoordsFromEvent(e);
-        
         if (checkPlacement(draggedBlock.data, row, col)) {
             placeBlock(draggedBlock.data, row, col);
             playSound('place');
             const blockIndex = availableBlocks.indexOf(draggedBlock.data);
             availableBlocks[blockIndex] = null;
-            
             clearLines();
             updateUI();
-
             if (availableBlocks.every(b => !b)) {
                 generateNewBlocks();
                 updateUI();
@@ -307,13 +293,11 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             draggedBlock.element.style.visibility = 'visible';
         }
-
         clearShadow();
         document.body.removeChild(draggedBlock.clone);
         draggedBlock = null;
     }
 
-    // ---- CỬA HÀNG, VẬT PHẨM VÀ DỮ LIỆU ---- //
     function updateUI() {
         scoreEl.textContent = score;
         coinsEl.innerHTML = `${coins} 💰`;
@@ -335,18 +319,10 @@ document.addEventListener('DOMContentLoaded', () => {
         SHOP_ITEMS.forEach(item => {
             const canAfford = coins >= item.price;
             const isOwned = item.type && inventory[item.id];
-            let btnHTML;
-            if (isOwned) {
-                btnHTML = `<button class="buy-btn" disabled>Đã sở hữu</button>`;
-            } else {
-                btnHTML = `<button class="buy-btn" data-item-id="${item.id}" ${!canAfford ? 'disabled' : ''}>${item.price} 💰</button>`;
-            }
+            let btnHTML = isOwned ? `<button class="buy-btn" disabled>Đã sở hữu</button>` : `<button class="buy-btn" data-item-id="${item.id}" ${!canAfford ? 'disabled' : ''}>${item.price} 💰</button>`;
             const itemEl = document.createElement('div');
             itemEl.className = 'shop-item';
-            itemEl.innerHTML = `
-                <div class="shop-item-info"><h4>${item.icon} ${item.name}</h4><p>${item.desc}</p></div>
-                ${btnHTML}
-            `;
+            itemEl.innerHTML = `<div class="shop-item-info"><h4>${item.icon} ${item.name}</h4><p>${item.desc}</p></div>${btnHTML}`;
             shopItemsEl.appendChild(itemEl);
         });
         shopModal.style.display = 'flex';
@@ -380,7 +356,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // ---- GẮN CÁC SỰ KIỆN ---- //
     function addAllEventListeners() {
         document.addEventListener('mousedown', handleDragStart);
         document.addEventListener('mousemove', handleDragMove);
@@ -394,7 +369,6 @@ document.addEventListener('DOMContentLoaded', () => {
         shopItemsEl.addEventListener('click', buyItem);
     }
     
-    // ---- KHỞI CHẠY ---- //
     startGame();
     addAllEventListeners();
 });
