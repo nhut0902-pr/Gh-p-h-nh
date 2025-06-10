@@ -3,19 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Block Puzzle Game - New Version</title>
+    <title>Block Puzzle Master - Enhanced Edition</title>
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-
     <div id="game-container">
-        <!-- Phần hiển thị thông tin game ở trên -->
+        <!-- Enhanced Header with Score and Streak -->
         <header class="game-header">
             <div class="info-panel level-display">
-                Level <span id="level-number">1</span>
+                <div class="level-icon icon"></div>
+                <span id="level-number">1</span>
+            </div>
+            <div class="info-panel score-display">
+                <div class="star-icon icon"></div>
+                <span id="score">0</span>
             </div>
             <div class="info-panel objective-display">
                 <div class="crate-icon icon"></div>
@@ -23,63 +27,140 @@
             </div>
             <div class="info-panel coin-display">
                 <div class="coin-icon icon"></div>
-                <span id="coins-amount">0</span>
+                <span id="coins-amount">500</span>
             </div>
         </header>
 
-        <!-- Lưới game -->
+        <!-- Progress Bar -->
+        <div class="progress-container">
+            <div class="progress-bar">
+                <div id="progress-fill" class="progress-fill"></div>
+            </div>
+            <div class="progress-text">
+                <span id="progress-percentage">0%</span>
+            </div>
+        </div>
+
+        <!-- Combo Display -->
+        <div id="combo-display" class="combo-display hidden">
+            <div class="combo-text">COMBO</div>
+            <div id="combo-count" class="combo-count">x2</div>
+        </div>
+
+        <!-- Game Board -->
         <div id="game-board-wrapper">
             <div id="game-board"></div>
+            <div id="preview-overlay" class="preview-overlay hidden"></div>
         </div>
 
-        <!-- Thanh vật phẩm hỗ trợ -->
+        <!-- Enhanced Action Bar -->
         <div class="action-bar">
             <div id="power-up-bar">
-                <!-- Các vật phẩm đã mua sẽ hiện ở đây -->
+                <!-- Power-ups will be populated here -->
             </div>
-            <button id="store-button" class="action-button store-icon"></button>
-            <button id="settings-button" class="action-button settings-icon"></button>
+            <div class="action-buttons">
+                <button id="hint-button" class="action-button hint-icon" title="Gợi ý"></button>
+                <button id="store-button" class="action-button store-icon" title="Cửa hàng"></button>
+                <button id="settings-button" class="action-button settings-icon" title="Cài đặt"></button>
+            </div>
         </div>
 
-        <!-- Khu vực chứa các khối để kéo -->
-        <div id="piece-container"></div>
+        <!-- Enhanced Piece Container -->
+        <div id="piece-container">
+            <div class="next-pieces-label">Khối tiếp theo:</div>
+            <div id="pieces-grid"></div>
+        </div>
     </div>
 
-    <!-- Modal Cài đặt -->
+    <!-- Enhanced Settings Modal -->
     <div id="settings-modal" class="modal-overlay hidden">
         <div class="modal-content">
-            <h2>Cài đặt</h2>
-            <div class="setting-item">
-                <label for="sound-toggle">Âm thanh</label>
-                <button id="sound-toggle" class="toggle-button on">Bật</button>
+            <h2>⚙️ Cài đặt</h2>
+            <div class="settings-grid">
+                <div class="setting-item">
+                    <label for="sound-toggle">🔊 Âm thanh</label>
+                    <button id="sound-toggle" class="toggle-button on">Bật</button>
+                </div>
+                <div class="setting-item">
+                    <label for="vibration-toggle">📳 Rung</label>
+                    <button id="vibration-toggle" class="toggle-button on">Bật</button>
+                </div>
+                <div class="setting-item">
+                    <label for="hints-toggle">💡 Gợi ý tự động</label>
+                    <button id="hints-toggle" class="toggle-button off">Tắt</button>
+                </div>
+                <div class="setting-item">
+                    <label for="difficulty-select">🎯 Độ khó</label>
+                    <select id="difficulty-select" class="difficulty-select">
+                        <option value="easy">Dễ</option>
+                        <option value="normal" selected>Bình thường</option>
+                        <option value="hard">Khó</option>
+                    </select>
+                </div>
             </div>
-            <button class="close-modal-button">Đóng</button>
+            <div class="modal-buttons">
+                <button id="reset-game-button" class="danger-button">🔄 Khởi động lại</button>
+                <button class="close-modal-button">Đóng</button>
+            </div>
         </div>
     </div>
 
-    <!-- Modal Cửa hàng -->
+    <!-- Enhanced Store Modal -->
     <div id="store-modal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <h2>Cửa hàng Vật Phẩm</h2>
-            <div class="store-grid">
-                <!-- 20 vật phẩm sẽ được JS tạo ra ở đây -->
+        <div class="modal-content store-modal">
+            <h2>🛒 Cửa hàng Vật Phẩm</h2>
+            <div class="store-tabs">
+                <button class="store-tab active" data-tab="powerups">Vật phẩm</button>
+                <button class="store-tab" data-tab="coins">Xu</button>
+                <button class="store-tab" data-tab="themes">Giao diện</button>
+            </div>
+            <div class="store-content">
+                <div id="powerups-tab" class="store-grid active">
+                    <!-- Power-ups will be populated here -->
+                </div>
+                <div id="coins-tab" class="store-grid">
+                    <!-- Coin packages will be populated here -->
+                </div>
+                <div id="themes-tab" class="store-grid">
+                    <!-- Themes will be populated here -->
+                </div>
             </div>
             <button class="close-modal-button">Đóng</button>
         </div>
     </div>
 
-    <!-- Modal thông báo -->
+    <!-- Achievement Modal -->
+    <div id="achievement-modal" class="modal-overlay hidden">
+        <div class="modal-content achievement-modal">
+            <div class="achievement-icon">🏆</div>
+            <h2 id="achievement-title">Thành tựu mở khóa!</h2>
+            <p id="achievement-description">Bạn đã đạt được một thành tựu mới!</p>
+            <div class="achievement-reward">
+                <div class="coin-icon icon"></div>
+                <span id="achievement-coins">+50</span>
+            </div>
+            <button id="achievement-ok-button">Tuyệt vời!</button>
+        </div>
+    </div>
+
+    <!-- Enhanced Notification Modal -->
     <div id="notification-modal" class="modal-overlay hidden">
-        <div class="modal-content">
+        <div class="modal-content notification-modal">
+            <div id="notification-icon" class="notification-icon">ℹ️</div>
             <h2 id="notification-title">Thông báo</h2>
             <p id="notification-message">Nội dung thông báo.</p>
-            <button id="notification-button">OK</button>
+            <div class="modal-buttons">
+                <button id="notification-button" class="primary-button">OK</button>
+            </div>
         </div>
     </div>
 
-    <!-- Thư viện âm thanh ZzFX -->
+    <!-- Particle System -->
+    <div id="particle-container"></div>
+
+    <!-- Audio Library -->
     <script src="https://cdn.jsdelivr.net/npm/zzfx@1.1.2/ZzFX.min.js"></script>
-    <!-- File script của game -->
+    <!-- Game Script -->
     <script src="script.js"></script>
 </body>
 </html>
